@@ -6,11 +6,7 @@ import type {
   OAuthSessionCallbackResult,
   UserInfo,
 } from "@zcode/shared";
-import {
-  DesktopCommandIds,
-  resolveProviderFamilyDomainFromOAuthProvider,
-  ZCODE_JWT_INVALID_BROADCAST_CHANNEL,
-} from "@zcode/shared";
+import { resolveProviderFamilyDomainFromOAuthProvider } from "@zcode/shared";
 import type { IServiceAccessor } from "@zcode/services";
 import { useAlertDialog } from "@/hooks/useAlertDialog.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
@@ -23,7 +19,6 @@ import {
   refreshRestoredOAuthProviderFamilyAfterStartup,
 } from "@/root/oauthProviderFamilySelectionRefresh.js";
 import { applyCachedOAuthSessionRestoreResult } from "@/root/oauthCachedSessionRestore.js";
-import { markZcodeJwtInvalidRestart } from "@/root/zcodeJwtInvalidRestartMarker.js";
 import { shouldApplyOAuthPollingFailure } from "@/root/oauthLoginAttemptGuard.js";
 import { useAccountConnectionLossNotification } from "@/root/useAccountConnectionLossNotification.js";
 
@@ -103,7 +98,6 @@ export function useRootOAuthEffects({
   oauthPollingActive,
   setOAuthPollingActive,
   markOAuthSuccess,
-  onReauthenticationRequired,
 }: {
   accountIntentKey: string;
   platform: IPlatformService;
@@ -116,7 +110,6 @@ export function useRootOAuthEffects({
   oauthPollingActive: boolean;
   setOAuthPollingActive: (active: boolean) => void;
   markOAuthSuccess: (provider?: OAuthProviderId) => void;
-  onReauthenticationRequired: () => void;
 }) {
   useAccountConnectionLossNotification(services, accountIntentKey, refreshAppSettings);
   const requestAlert = useAlertDialog();
@@ -144,7 +137,6 @@ export function useRootOAuthEffects({
           result,
           setUser,
           requestAlert,
-          onReauthenticationRequired,
           copy: {
             title: intl.formatMessage({ id: "login.expired.title" }),
             description: intl.formatMessage({ id: "login.expired.description" }),
@@ -191,7 +183,6 @@ export function useRootOAuthEffects({
     };
   }, [
     intl,
-    onReauthenticationRequired,
     refreshAppSettings,
     refreshProviderState,
     requestAlert,
@@ -200,40 +191,8 @@ export function useRootOAuthEffects({
     setUser,
   ]);
 
-  useEffect(() => {
-    let disposed = false;
-    const disposable = services.broadcastService.onMessage((message) => {
-      if (message.channel !== ZCODE_JWT_INVALID_BROADCAST_CHANNEL || disposed) {
-        return;
-      }
-      void (async () => {
-        const confirmed = await requestAlert({
-          title: intl.formatMessage({ id: "login.expired.title" }),
-          description: intl.formatMessage({ id: "login.expired.description" }),
-          actionLabel: intl.formatMessage({ id: "login.expired.restart" }),
-        });
-        if (disposed) {
-          return;
-        }
-        if (!confirmed) {
-          onReauthenticationRequired();
-          return;
-        }
-        markZcodeJwtInvalidRestart();
-        if (typeof window !== "undefined" && !("zcode" in window)) {
-          // Web 没有 Electron RelaunchApp；marker 写入后立即刷新，避免停留在僵尸登录态。
-          window.location.reload();
-          return;
-        }
-        await platform.executeDesktopCommand(DesktopCommandIds.RelaunchApp);
-      })();
-    });
-    return () => {
-      disposed = true;
-      disposable.dispose();
-    };
-  }, [intl, onReauthenticationRequired, platform, requestAlert, services.broadcastService]);
-
+  // 二次开发：JWT 过期「确认后重启/强制重登」流程已移除；
+  // 登录态失效后由模型设置页的 provider 登录按需重新建立。
   useEffect(() => {
     if (!oauthPollingActive) {
       return;

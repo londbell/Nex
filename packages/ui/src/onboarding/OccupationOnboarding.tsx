@@ -72,16 +72,17 @@ export function OccupationOnboarding({
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const [error, setError] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
   const loadDeviceMid = useCallback(() => platform.getDeviceId(), [platform]);
+  // 二次开发：ZCode 新手引导（职业引导）随账号体系裁剪，不再自动触发；
+  // 保留组件作为窗口控制/布局 wrapper，仅响应显式 request（目前无入口）。
   const [needsOnboarding, markOnboarded] = useOnboardingTrigger({
     onboardingRecord,
     userId,
-    hasStoredOccupation: Boolean(settings?.onboardingOccupation),
+    hasStoredOccupation: true,
     loadDeviceMid,
     update,
   });
-  const onboardingVisible = requested || (needsOnboarding === true && !dismissed);
+  const onboardingVisible = requested;
   const captureEnd = useOnboardingTelemetry({
     platform,
     visible:
@@ -99,7 +100,6 @@ export function OccupationOnboarding({
     if (savingRef.current) return;
     captureEnd("close", intl.formatMessage({ id: "occupationOnboarding.close" }))();
     setStep(0);
-    setDismissed(true);
     setRequested(false);
     if (onboardingRecord) {
       void onboardingRecord.dismissOnboarding(platform.getDeviceId()).catch((cause: unknown) => {
@@ -236,7 +236,6 @@ export function OccupationOnboarding({
       reportEnd();
       // 保存成功就是本次引导的终点；本地记录失败不应留下可再次上报的引导页面。
       setStep(0);
-      setDismissed(true);
       setRequested(false);
       if (!skip && migration) requestOnboardingDialog("migration");
       logger.info("[occupation-onboarding] 偏好保存完成", { interfaceMode: mode });
