@@ -45,6 +45,8 @@ export interface IProviderSettingsService {
   resolveModelConfig(input: ResolveModelConfigInput): Promise<ModelConfigResolution>;
   /** 手动"获取模型信息"：按模型 ID 查询 models.dev 目录并返回稀疏配置。 */
   lookupModelInfo(modelId: ModelId): Promise<ModelInfoLookupResult>;
+  /** 用供应商配置的地址和密钥请求远端 /models 接口，返回可用模型 ID 列表。 */
+  listRemoteModels(providerId: ProviderId): Promise<{ readonly ids: readonly string[] }>;
   savePersonalProviderOverlay(
     providerId: ProviderId,
     config: ProviderConfigObject,
@@ -126,6 +128,51 @@ export function createProviderSettingsService(
     // 默认空实现：models.dev 查询依赖 Node 侧磁盘缓存，由
     // createProviderSettingsWithModelsDevLookup 在服务端装配时覆盖。
     lookupModelInfo: async () => ({ found: false, config: {} }),
+    listRemoteModels: async (providerId) => {
+      await ensureReady();
+      const view = facade.getView();
+      const provider = view.providers.find((p) => p.providerId === providerId);
+      if (!provider) throw new Error(`Provider not found: ${providerId}`);
+      const api = provider.effectiveConfig.api;
+      const baseUrl = api?.baseUrl?.trim().replace(/\/+$/, "");
+      if (!baseUrl) throw new Error("该供应商未配置 Base URL");
+      const headers: Record<string, string> = {
+        accept: "application/json",
+        ...(api?.headers ?? {}),
+      };
+      const access = provider.effectiveConfig.access;
+      const apiKey = access?.type === "api-key" && typeof access.apiKey === "string" ? access.apiKey : undefined;
+      if (apiKey) {
+        if (api?.type === "anthropic-messages") {
+          headers["x-api-key"] ??= apiKey;
+          headers["anthropic-version"] ??= "2023-06-01";
+        } else {
+          headers["authorization"] ??= `Bearer ${apiKey}`;
+        }
+      }
+      const response = await fetch(`${baseUrl}/models`, {
+        headers,
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!response.ok) throw new Error(`模型列表请求失败: HTTP ${response.status}`);
+      const payload: unknown = await response.json();
+      const raw = Array.isArray(payload)
+        ? payload
+        : Array.isArray((payload as { data?: unknown })?.data)
+          ? (payload as { data: unknown[] }).data
+          : [];
+      const ids = raw
+        .map((item) =>
+          typeof item === "string"
+            ? item
+            : ((item as { id?: unknown; name?: unknown })?.id ??
+              (item as { name?: unknown })?.name ??
+              ""),
+        )
+        .map((id) => String(id).replace(/^models\//, ""))
+        .filter((id) => id.length > 0);
+      return { ids: [...new Set(ids)] };
+    },
     getView: async () => {
       await ensureReady();
       return facade.getView();
