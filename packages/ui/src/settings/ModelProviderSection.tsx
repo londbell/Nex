@@ -15,9 +15,7 @@ import {
   type ProviderFamilyConnectionSelectionSettings,
   type ProviderFamilyDomain,
   type OAuthProviderId,
-  resolveModelProviderFamilyIdByProviderId,
   resolveModelProviderFamilySpecByProviderId,
-  resolveProviderFamilyDomainFromOAuthProvider,
   ZAI_PROVIDER_ID,
 } from "@zcode/shared";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
@@ -30,7 +28,6 @@ import { useServices } from "@/hooks/useServices.js";
 import { useZCodeStore } from "@/store/StoreProvider.js";
 import { logger } from "@/logger.js";
 import {
-  PRESET_PROVIDER_SPECS,
   PRESET_SUBSCRIPTION_TIMEOUT_MS,
   BIGMODEL_REGISTRATION_URL,
   type CodingPlanStatus,
@@ -146,37 +143,6 @@ function shouldRefreshCodingPlanEntitlementsAfterSave(
   );
 }
 
-function resolveBuiltinPresetOAuthProvider(
-  presetId: BuiltinModelProviderId,
-): OAuthProviderId | null {
-  if (
-    presetId === BUILTIN_MODEL_PROVIDER_IDS.zaiIndividualCodingPlan ||
-    presetId === BUILTIN_MODEL_PROVIDER_IDS.zaiTeamCodingPlan ||
-    presetId === BUILTIN_MODEL_PROVIDER_IDS.zaiStartPlan
-  ) {
-    return ZAI_PROVIDER_ID;
-  }
-  if (
-    presetId === BUILTIN_MODEL_PROVIDER_IDS.bigmodelIndividualCodingPlan ||
-    presetId === BUILTIN_MODEL_PROVIDER_IDS.bigmodelTeamCodingPlan ||
-    presetId === BUILTIN_MODEL_PROVIDER_IDS.bigmodelStartPlan
-  ) {
-    return BIGMODEL_PROVIDER_ID;
-  }
-  return null;
-}
-
-function shouldShowPresetProviderForActiveOAuth(
-  presetId: BuiltinModelProviderId,
-  providerFamilyDomain: ProviderFamilyDomain | null | undefined,
-): boolean {
-  const presetOAuthProvider = resolveBuiltinPresetOAuthProvider(presetId);
-  if (!providerFamilyDomain || !presetOAuthProvider) {
-    return true;
-  }
-  return resolveModelProviderFamilyIdByProviderId(presetId) === providerFamilyDomain;
-}
-
 function clearPendingProviderFamilyConnectionSelection(
   selections: ProviderFamilyConnectionSelectionSettings,
   familyId: ProviderFamilyDomain,
@@ -277,17 +243,6 @@ export function ModelProviderSection({
       id: "settings.modelProvider.testModel.localWorkspaceUnavailable",
     }),
   });
-  const entitledAccountProviderIds = useMemo<ReadonlySet<string>>(() => {
-    return new Set(
-      (providerSettingsView?.providers ?? [])
-        .filter(
-          (provider) =>
-            provider.effectiveConfig.access?.type === "zhipu-account" &&
-            provider.effectiveConfig.access.entitled === true,
-        )
-        .map((provider) => provider.providerId),
-    );
-  }, [providerSettingsView]);
   const providerConnectionRefreshSignal = providerSettingsView?.revision;
   const [initialModelProviderTarget] = useState(() => consumePendingSettingsModelProviderTarget());
   const [invalidProviderTarget, setInvalidProviderTarget] = useState(() =>
@@ -418,20 +373,6 @@ export function ModelProviderSection({
       authenticatedZaiEnterpriseProducts.refresh(),
     ]);
   }, [authenticatedEnterpriseProducts, authenticatedZaiEnterpriseProducts]);
-  const subscribedTeamProducts = useMemo(
-    () => [
-      ...(authenticatedEnterpriseProducts.snapshot?.productList.filter(
-        (product) => product.subscribed === true,
-      ) ?? []),
-      ...(authenticatedZaiEnterpriseProducts.snapshot?.productList.filter(
-        (product) => product.subscribed === true,
-      ) ?? []),
-    ],
-    [
-      authenticatedEnterpriseProducts.snapshot?.productList,
-      authenticatedZaiEnterpriseProducts.snapshot?.productList,
-    ],
-  );
   const connectionSelections = sharedSettings?.providerFamilyConnectionSelections ?? {};
   const familyConnectionSettingsFailed = sharedSettingsError !== null && sharedSettings === null;
   const effectiveConnectionSelections = useMemo(
@@ -441,15 +382,7 @@ export function ModelProviderSection({
     }),
     [connectionSelections, pendingConnectionSelections],
   );
-  // 原仅检查 bigmodel selectedKey 是否为 team plan，zai team key
-  // 永远不会触发已购团队 fallback（断裂）。改为任一 family 有持久化 team key 即显示。
-  const showPurchasedTeamPlanFallback = Boolean(
-    effectiveConnectionSelections.bigmodel?.kind === "team-coding-plan" ||
-    effectiveConnectionSelections.zai?.kind === "team-coding-plan",
-  );
-  const effectiveProviderFamilyDomain =
-    sharedSettings?.providerFamilyDomain ??
-    resolveProviderFamilyDomainFromOAuthProvider(activeOAuthProvider);
+  // 二次开发：已购团队 fallback 与 family 域过滤随智谱 section 下线不再需要。
   const { entitlements: codingPlanEntitlements, refresh: refreshCodingPlanEntitlements } =
     useCodingPlanEntitlements({
       providerSettingsView,
@@ -605,16 +538,7 @@ export function ModelProviderSection({
     };
   }, [providerConnectionRefreshSignal, refreshCodingPlanPurchaseTokenState]);
 
-  const presetProviders = useMemo(
-    () =>
-      PRESET_PROVIDER_SPECS.filter((preset) =>
-        shouldShowPresetProviderForActiveOAuth(preset.id, effectiveProviderFamilyDomain),
-      ).map((preset) => ({
-        ...preset,
-        provider: modelProviders.find((provider) => provider.providerId === preset.id) ?? null,
-      })),
-    [effectiveProviderFamilyDomain, modelProviders],
-  );
+  // 二次开发：智谱预置供应商导航已下线，presetProviders 不再参与设置页分组。
 
   useEffect(() => {
     if (!presetSubscriptionProviderId) {
@@ -681,17 +605,12 @@ export function ModelProviderSection({
 
   const { navigationGroups, navigationItems, selectedNavItem, navigationUnavailable } =
     useModelProviderNavigation({
-      presetProviders,
+      // 二次开发：智谱预置 section 下线，只保留自定义供应商导航。
       modelProviders,
-      entitledAccountProviderIds,
       modelProvidersLoading: loading,
       displayOrder,
-      codingPlanEntitlements,
-      subscribedTeamProducts,
-      providerFamilyDomain: effectiveProviderFamilyDomain,
       connectionSelections: effectiveConnectionSelections,
       pendingConnectionSelections,
-      showPurchasedTeamPlanFallback,
       familyConnectionSettingsLoading: sharedSettingsLoading && sharedSettings === null,
       familyConnectionSettingsFailed,
       selectedNodeKey,
@@ -1095,6 +1014,16 @@ export function ModelProviderSection({
             return handleCreateProvider({ providerName: label });
           }}
         />
+      ) : !presetLoading && navigationGroups.every((group) => group.items.length === 0) ? (
+        // 二次开发：智谱 section 下线后，没有任何自定义供应商时展示空态引导。
+        <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-ui-base">
+          <p className="text-foreground-subtle">
+            {intl.formatMessage({ id: "settings.modelProvider.empty" })}
+          </p>
+          <Button type="button" variant="outline" onClick={() => setTemplatePickerOpen(true)}>
+            {intl.formatMessage({ id: "settings.modelProvider.addProviderAction" })}
+          </Button>
+        </div>
       ) : (
         <ModelProviderSectionDetail
           connectionSelections={effectiveConnectionSelections}
