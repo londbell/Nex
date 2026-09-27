@@ -490,7 +490,6 @@ function RootInner({
     setWorkspaceActionError,
     startDraftInWorkspace,
     startNewTaskFromActiveWorkspace,
-    handleLogout,
     handleSelectProject,
     handleSelectConversationWorkspace,
     handleResolveConversationWorkspace,
@@ -956,8 +955,6 @@ function RootInner({
     onCreateTask: handleCreateTask,
     onOpenWorkspace: handleOpenWorkspace,
     allowOpenWorkspace,
-    onLogout: user ? handleLogout : undefined,
-    user,
   };
 
   if (isStartupRenderBlocked) {
@@ -1052,7 +1049,6 @@ function RootInner({
             remoteWorkspaceSessions={remoteWorkspaceSessions}
             allowRemoteWorkspace={allowRemoteWorkspace}
             handleBackFromSettings={handleBackFromSettings}
-            handleLogout={user ? handleLogout : undefined}
             user={user}
             reconnectingRemoteWorkspaceKeys={reconnectingRemoteWorkspaceKeys}
             remoteWorkspaceErrorByWorkspaceKey={remoteWorkspaceErrorByWorkspaceKey}

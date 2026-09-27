@@ -14,7 +14,6 @@ import type {
   IntegratedTerminalShellSelection,
   Locale,
   UsageEntitlementSnapshot,
-  UserInfo,
   ZCodeInteractionBehavior,
 } from "@zcode/shared";
 import {
@@ -276,8 +275,6 @@ export function SettingsPage({
   onCreateTask,
   onOpenWorkspace,
   allowOpenWorkspace = true,
-  onLogout,
-  user,
 }: {
   isDesktop?: boolean;
   isWindowsDesktop?: boolean;
@@ -288,8 +285,6 @@ export function SettingsPage({
   onCreateTask?: (request?: CreateTaskRequest) => void;
   onOpenWorkspace?: () => void;
   allowOpenWorkspace?: boolean;
-  onLogout?: () => void;
-  user?: UserInfo | null;
 }) {
   const { intl, localePreference, setLocalePreference } = useZCodeIntl();
   const { settingsSectionGroups, settingsSections } = useMemo(
@@ -1510,16 +1505,9 @@ export function SettingsPage({
 
               <div className="max-lg:hidden">
                 <WorkspaceSidebarFooter
-                  theme={theme}
-                  localeMenuValue={localePreference}
-                  onLocaleChange={handleFooterLocaleChange}
-                  onThemeChange={handleFooterThemeChange}
                   onSettingsButtonClick={onBack}
-                  onLogout={onLogout}
                   settingsButtonMode="back"
-                  user={user}
-                  // 头像菜单是 WorkspaceSidebarFooter 的共享菜单，Settings 场景不能丢失桌面平台能力。
-                  // 之前这里没透传 isDesktop，导致同一个头像菜单在设置页缺少界面缩放入口。
+                  // 头像菜单移除后 footer 仅剩设置/返回按钮与远端控制触发，仍需 isDesktop 决定远端控制入口。
                   isDesktop={isDesktop}
                 />
               </div>

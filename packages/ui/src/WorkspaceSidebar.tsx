@@ -46,7 +46,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import type { Locale, RemoteTarget, UserInfo, ZCodeTaskMeta } from "@zcode/shared";
+import type { RemoteTarget, ZCodeTaskMeta } from "@zcode/shared";
 import { BUILTIN_MODEL_PROVIDER_IDS } from "@zcode/shared";
 import {
   TID_CONVERSATION_NEW_TASK,
@@ -74,7 +74,6 @@ import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
 import { NewTaskButtonGroup } from "@/NewTaskButtonGroup.js";
 import { selectWorkspaceZCodeState, useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
-import { useZCodeStore } from "@/store/StoreProvider.js";
 import { useTabStore } from "@/store/TabStoreProvider.js";
 import { isWorkspaceReadOnly, isWorkspaceTab, type WorkspaceTabState } from "@/store/tabStore.js";
 import { useWorkspaceTaskLists } from "@/hooks/useWorkspaceTaskLists.js";
@@ -108,7 +107,6 @@ import {
   persistGroupedTaskCollapsedGroupIds,
   readGroupedTaskCollapsedGroupIds,
 } from "@/lib/groupedTaskExpansionPreference.js";
-import type { Theme } from "@/useTheme.js";
 import type { RemoteConnectionLogEntry } from "@/hooks/useRemoteConnectionLogs.js";
 import type { CodeViewerSource } from "@/lib/codeViewer.js";
 import { WorkspaceFileTree } from "@/WorkspaceFileTree.js";
@@ -231,13 +229,10 @@ export const WorkspaceSidebar = memo(function WorkspaceSidebarComponent({
   onCreateConversationTask,
   onOpenFolderFromWorkspaceMenu,
   onOpenRemoteWorkspace,
-  theme,
   onConnectRemote: _onConnectRemote,
   onSelectRemoteProject: _onSelectRemoteProject,
   onCancelRemoteProject: _onCancelRemoteProject,
   onReconnectRemoteWorkspace,
-  onLogout,
-  user,
   reconnectingRemoteWorkspaceKeys,
   remoteWorkspaceErrorByWorkspaceKey,
   reconnectingRemoteWorkspaceLogsByWorkspaceKey = EMPTY_RECONNECTING_REMOTE_WORKSPACE_LOGS_BY_WORKSPACE_KEY,
@@ -278,7 +273,6 @@ export const WorkspaceSidebar = memo(function WorkspaceSidebarComponent({
   onCreateConversationTask: () => void;
   onOpenFolderFromWorkspaceMenu: () => void;
   onOpenRemoteWorkspace?: () => void;
-  theme: Theme;
   onConnectRemote: (options: RemoteTarget, requestId?: string) => Promise<string>;
   onSelectRemoteProject: (
     sessionId: string,
@@ -287,8 +281,6 @@ export const WorkspaceSidebar = memo(function WorkspaceSidebarComponent({
   ) => Promise<void>;
   onCancelRemoteProject: (sessionId: string) => Promise<void>;
   onReconnectRemoteWorkspace: (workspaceKey: string) => Promise<void>;
-  onLogout?: () => void;
-  user?: UserInfo | null;
   reconnectingRemoteWorkspaceKeys: string[];
   remoteWorkspaceErrorByWorkspaceKey: Record<string, string>;
   reconnectingRemoteWorkspaceLogsByWorkspaceKey?: Record<string, RemoteConnectionLogEntry[]>;
@@ -311,7 +303,7 @@ export const WorkspaceSidebar = memo(function WorkspaceSidebarComponent({
   pluginStoreActive?: boolean;
   onFileTreeOpenChange?: (open: boolean) => void;
 }) {
-  const { intl, localePreference, setLocalePreference } = useZCodeIntl();
+  const { intl } = useZCodeIntl();
   const handleTaskRowSelect = useCallback(
     (
       targetWorkspacePath: string,
@@ -352,7 +344,6 @@ export const WorkspaceSidebar = memo(function WorkspaceSidebarComponent({
         id: "workspaceSidebar.unavailableLocalDirectory",
       })
     : undefined;
-  const setTheme = useZCodeStore((state) => state.setTheme);
   const commandCenterShortcutLabel = useShortcutCommandLabel("openCommandCenter");
   const tabs = useTabStore((state) => state.tabs);
   const activateTab = useTabStore((state) => state.activateTab);
@@ -621,7 +612,6 @@ export const WorkspaceSidebar = memo(function WorkspaceSidebarComponent({
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
-  const localeMenuValue = localePreference === "system" ? "system" : localePreference;
   const workspaceTaskLists = useWorkspaceTaskLists({
     workspaceTabs: projectWorkspaceTabs,
     activeWorkspacePath: workspacePath,
@@ -714,34 +704,6 @@ export const WorkspaceSidebar = memo(function WorkspaceSidebarComponent({
         ? (projectWorkspaceTabs.find((tab) => tab.id === activeWorkspaceDragId) ?? null)
         : null,
     [activeWorkspaceDragId, projectWorkspaceTabs],
-  );
-
-  const handleThemeChange = useCallback(
-    (value: string) => {
-      if (
-        value === "light" ||
-        value === "dark" ||
-        value === "zai-light" ||
-        value === "zai-dark" ||
-        value === "system"
-      ) {
-        setTheme(value);
-      }
-    },
-    [setTheme],
-  );
-
-  const handleLocaleChange = useCallback(
-    (value: string) => {
-      if (value === "system") {
-        setLocalePreference("system");
-        return;
-      }
-      if (value === "zh-CN" || value === "en-US") {
-        setLocalePreference(value as Locale);
-      }
-    },
-    [setLocalePreference],
   );
 
   const handleOpenPluginStoreMain = useCallback(() => {
@@ -1627,13 +1589,7 @@ export const WorkspaceSidebar = memo(function WorkspaceSidebarComponent({
 
           <WorkspaceSidebarFooter
             className="pr-3"
-            theme={theme}
-            localeMenuValue={localeMenuValue}
-            onLocaleChange={handleLocaleChange}
-            onThemeChange={handleThemeChange}
             onSettingsButtonClick={openSettingsTab}
-            onLogout={onLogout}
-            user={user}
             workspacePath={workspacePath}
             workspaceIdentity={workspaceIdentity}
             isDesktop={isDesktop}

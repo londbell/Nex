@@ -203,7 +203,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
   onSelectRemoteProject,
   onCancelRemoteProject,
   onReconnectRemoteWorkspace,
-  onLogout,
   user,
   reconnectingRemoteWorkspaceKeys,
   remoteWorkspaceErrorByWorkspaceKey,
@@ -226,7 +225,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
   isMacDesktop,
   isWindowsDesktop,
   workspaceShellZCodeState,
-  theme,
   isMacFullscreen,
   desktopWindowChromeState,
   macWindowControlsLeftPaddingPx,
@@ -1569,7 +1567,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
                     onCreateConversationTask={onCreateConversationTask ?? handleCreateTaskInChat}
                     onOpenFolderFromWorkspaceMenu={onOpenFolderFromWorkspaceMenu}
                     onOpenRemoteWorkspace={onOpenRemoteWorkspace}
-                    theme={theme}
                     onConnectRemote={onConnectRemote}
                     onSelectRemoteProject={onSelectRemoteProject}
                     onCancelRemoteProject={onCancelRemoteProject}
@@ -1579,8 +1576,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
                     reconnectingRemoteWorkspaceLogsByWorkspaceKey={
                       reconnectingRemoteWorkspaceLogsByWorkspaceKey
                     }
-                    onLogout={onLogout}
-                    user={user}
                     isDesktop={isDesktop}
                     isMacDesktop={isMacDesktop}
                     isWindowsDesktop={isWindowsDesktop}

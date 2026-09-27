@@ -95,8 +95,6 @@ export function App({
   onSelectRemoteProject,
   onCancelRemoteProject,
   onReconnectRemoteWorkspace,
-  onLogout,
-  onLogin,
   user,
   reconnectingRemoteWorkspaceKeys,
   remoteWorkspaceErrorByWorkspaceKey,
@@ -1026,8 +1024,6 @@ export function App({
           openFeedback: handleOpenFeedback,
           openCommunity: handleOpenCommunity,
           openProductDocs: handleOpenProductDocs,
-          login: onLogin,
-          logout: onLogout,
           toggleSidebar: () => runVisibleWorkspaceCommand(handleToggleSidebar),
           toggleTerminal: () => runVisibleWorkspaceCommand(handleToggleTerminalIfWritable),
           togglePreview: () => runVisibleWorkspaceCommand(handleToggleBrowser),
@@ -1055,8 +1051,6 @@ export function App({
       isSidebarVisible,
       newTaskShortcutLabel,
       handleCreateTaskIfWritable,
-      onLogin,
-      onLogout,
       onOpenWorkspace,
       runVisibleWorkspaceCommand,
       openSettingsTab,
@@ -1138,8 +1132,6 @@ export function App({
         onSelectRemoteProject={onSelectRemoteProject}
         onCancelRemoteProject={onCancelRemoteProject}
         onReconnectRemoteWorkspace={onReconnectRemoteWorkspace}
-        onLogout={onLogout}
-        onLogin={onLogin}
         user={user}
         reconnectingRemoteWorkspaceKeys={reconnectingRemoteWorkspaceKeys}
         remoteWorkspaceErrorByWorkspaceKey={remoteWorkspaceErrorByWorkspaceKey}
@@ -1166,7 +1158,6 @@ export function App({
         isMacDesktop={isMacDesktop}
         isWindowsDesktop={isWindowsDesktop}
         workspaceShellZCodeState={workspaceShellZCodeState}
-        theme={theme}
         isMacFullscreen={isMacFullscreen}
         desktopWindowChromeState={desktopWindowChromeState}
         macWindowControlsLeftPaddingPx={macWindowControlsLeftPaddingPx}
