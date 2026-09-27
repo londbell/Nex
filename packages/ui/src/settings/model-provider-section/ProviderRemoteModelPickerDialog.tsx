@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2Icon, SearchIcon } from "lucide-react";
 import { Button } from "@/components/ui/button.js";
 import {
@@ -33,7 +33,6 @@ export function ProviderRemoteModelPickerDialog({
   existingModelIds?: readonly string[];
 }) {
   const { intl } = useNexIntl();
-  const pickerId = useId();
   const [ids, setIds] = useState<readonly string[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -73,6 +72,16 @@ export function ProviderRemoteModelPickerDialog({
     const q = query.trim().toLowerCase();
     return q ? ids.filter((id) => id.toLowerCase().includes(q)) : ids;
   }, [ids, query]);
+  // 已添加的模型不可选：部分添加失败后重试时，已成功的那部分会出现在 existing 中，
+  // 必须从待提交集合里剔除，否则会重复添加。
+  const selectable = useMemo(
+    () => filtered.filter((id) => !existing.has(id)),
+    [filtered, existing],
+  );
+  const pending = useMemo(
+    () => [...selected].filter((id) => !existing.has(id)),
+    [selected, existing],
+  );
 
   const toggle = (id: string, checked: boolean) => {
     setSelected((prev) => {
@@ -84,11 +93,11 @@ export function ProviderRemoteModelPickerDialog({
   };
 
   const handleConfirm = async () => {
-    if (selected.size === 0 || confirming) return;
+    if (pending.length === 0 || confirming) return;
     setConfirming(true);
     setConfirmError(null);
     try {
-      await onConfirm([...selected]);
+      await onConfirm(pending);
       onOpenChange(false);
     } catch (error) {
       setConfirmError(error instanceof Error ? error.message : String(error));
@@ -99,11 +108,7 @@ export function ProviderRemoteModelPickerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        data-picker-id={pickerId}
-        data-picker-open={String(open)}
-        className="flex max-h-[85vh] flex-col gap-4 sm:max-w-xl"
-      >
+      <DialogContent className="flex max-h-[85vh] flex-col gap-4 sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>
             {intl.formatMessage({ id: "settings.modelProvider.remotePicker.title" })}
@@ -123,7 +128,7 @@ export function ProviderRemoteModelPickerDialog({
             className="min-h-20 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-ui-sm text-destructive"
           >
             {intl.formatMessage({ id: "settings.modelProvider.remotePicker.loadFailed" })}
-            {loadError ? `: ${loadError}` : ""}
+            {`: ${loadError}`}
           </div>
         ) : (
           <>
@@ -149,11 +154,11 @@ export function ProviderRemoteModelPickerDialog({
                   type="button"
                   variant="secondary"
                   size="sm"
-                  disabled={filtered.length === 0}
+                  disabled={selectable.length === 0}
                   onClick={() =>
                     setSelected((prev) => {
                       const next = new Set(prev);
-                      for (const id of filtered) next.add(id);
+                      for (const id of selectable) next.add(id);
                       return next;
                     })
                   }
@@ -165,7 +170,7 @@ export function ProviderRemoteModelPickerDialog({
                   variant="ghost"
                   size="sm"
                   className="text-foreground-subtle"
-                  disabled={selected.size === 0}
+                  disabled={pending.length === 0}
                   onClick={() => setSelected(new Set())}
                 >
                   {intl.formatMessage({ id: "settings.modelProvider.remotePicker.clearSelection" })}
@@ -174,11 +179,11 @@ export function ProviderRemoteModelPickerDialog({
               <span className="text-foreground-subtle">
                 {intl.formatMessage(
                   { id: "settings.modelProvider.remotePicker.selectedCount" },
-                  { count: selected.size },
+                  { count: pending.length },
                 )}
               </span>
             </div>
-            <div className="-mr-2 min-h-0 flex-1 space-y-2 overflow-y-auto pr-2" role="listbox">
+            <div className="-mr-2 min-h-0 flex-1 space-y-2 overflow-y-auto pr-2">
               {filtered.length === 0 ? (
                 <div className="py-8 text-center text-ui-sm text-foreground-subtle">
                   {intl.formatMessage({ id: "settings.modelProvider.remotePicker.empty" })}
@@ -189,12 +194,8 @@ export function ProviderRemoteModelPickerDialog({
                   return (
                     <label
                       key={id}
-                      role="option"
-                      aria-selected={added || selected.has(id)}
                       className={`flex items-center gap-3 rounded-lg border border-input-border bg-input px-3 py-2.5 text-ui-sm ${
-                        added
-                          ? "opacity-60"
-                          : "cursor-pointer hover:bg-surface-hover"
+                        added ? "opacity-60" : "cursor-pointer hover:bg-surface-hover"
                       }`}
                     >
                       <Checkbox
@@ -239,10 +240,12 @@ export function ProviderRemoteModelPickerDialog({
             type="button"
             variant="default"
             size="lg"
-            disabled={loading || selected.size === 0 || confirming}
+            disabled={loading || pending.length === 0 || confirming}
             onClick={() => void handleConfirm()}
           >
-            {confirming ? <Loader2Icon className="size-3.5 animate-spin" aria-hidden="true" /> : null}
+            {confirming ? (
+              <Loader2Icon className="size-3.5 animate-spin" aria-hidden="true" />
+            ) : null}
             {intl.formatMessage({ id: "settings.modelProvider.remotePicker.addSelected" })}
           </Button>
         </div>

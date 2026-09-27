@@ -3364,14 +3364,18 @@ const enUS: Record<string, string> = {
     "**MFJS tool schema**: Enables Moonshot Flavored JSON Schema compatibility, commonly used by Moonshot's Kimi model API. Enable only when the model API requires this format.",
   "settings.modelProvider.fetchModelInfo": "Fetch model info",
   "settings.modelProvider.modelDefaultsLoaded": "Model info filled from models.dev",
-  "settings.modelProvider.modelInfoNotFound": "Model not found on models.dev. Fill in the config manually.",
+  "settings.modelProvider.modelInfoNotFound":
+    "Model not found on models.dev. Fill in the config manually.",
+  "settings.modelProvider.modelInfoLookupFailed":
+    "Could not reach models.dev. Check your network and try again.",
   "settings.modelProvider.modelConfigIncomplete": "Model configuration is incomplete",
   "settings.modelProvider.models": "Model list",
   "settings.modelProvider.modelsEmpty": "No models are configured. Add a model to use it in chat.",
   "settings.modelProvider.addModel": "Add model manually",
   "settings.modelProvider.fetchFromModelsApi": "Fetch from /v1/models",
   "settings.modelProvider.remotePicker.title": "Select models from /v1/models",
-  "settings.modelProvider.remotePicker.description": "Reads the model list using the provider base URL and API key above; extra headers are included as configured.",
+  "settings.modelProvider.remotePicker.description":
+    "Reads the model list using the provider base URL and API key above; extra headers are included as configured.",
   "settings.modelProvider.remotePicker.searchPlaceholder": "Filter by name",
   "settings.modelProvider.remotePicker.selectAll": "Select all listed",
   "settings.modelProvider.remotePicker.clearSelection": "Clear selection",
@@ -4568,8 +4572,7 @@ const enUS: Record<string, string> = {
   "chat.emptyResult.title": "No visible output",
   "chat.emptyResult.description":
     "This task finished without any chat content. It may have been stopped before the model produced a response.",
-  "chat.placeholder.newTask":
-    "Ask Nex anything, @ to add context, / for commands or capabilities",
+  "chat.placeholder.newTask": "Ask Nex anything, @ to add context, / for commands or capabilities",
   "chat.placeholder.newTaskMobile": "Ask Nex anything…",
   "chat.placeholder.followUpAsk": "Ask for follow-up changes",
   "chat.placeholder.followUpQueue": "Keep typing to queue follow-up changes",
@@ -5952,8 +5955,7 @@ const enUS: Record<string, string> = {
     "Today's free plan quota has been used up. Upgrade to continue now, or wait for the quota to reset.",
   "nex.error.providerBusiness.3006":
     "The current model is not included in this plan. Switch to an allowed model and try again.",
-  "nex.error.providerBusiness.3002":
-    "You're sending requests too quickly. Please try again later.",
+  "nex.error.providerBusiness.3002": "You're sending requests too quickly. Please try again later.",
   "nex.error.providerBusiness.3001":
     "The request parameters are invalid. Check the input and try again.",
   "nex.error.providerBusiness.3007":
@@ -5970,8 +5972,7 @@ const enUS: Record<string, string> = {
     "The model returned no content (often caused by an expired token or plan issues). Please send again.",
   "nex.error.providerBusiness.2007":
     "The upstream service is temporarily unavailable. Please try again later.",
-  "nex.error.providerBusiness.429":
-    "You're sending requests too quickly. Please try again later.",
+  "nex.error.providerBusiness.429": "You're sending requests too quickly. Please try again later.",
 
   // Debug info bar
   "debugInfo.taskId": "Task ID",

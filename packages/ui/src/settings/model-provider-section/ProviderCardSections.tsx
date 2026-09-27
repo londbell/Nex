@@ -1,6 +1,7 @@
 /* eslint-disable max-lines -- 模型供应商卡片仍在迁移期集中维护多个紧耦合区块，后续拆分时再移除。 */
 import {
   useCallback,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -22,7 +23,15 @@ import {
   TID_MODEL_PROVIDER_NAME_INPUT,
   testId,
 } from "@nex/shared";
-import { InfoIcon, LockKeyholeIcon, Plus, Pencil, Trash2, MoreHorizontal, GlobeIcon } from "lucide-react";
+import {
+  GlobeIcon,
+  InfoIcon,
+  LockKeyholeIcon,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button.js";
 import { Input } from "@/components/ui/input.js";
 import {
@@ -400,22 +409,26 @@ export function ProviderModelsSection({
     () => providerSettingsService.listRemoteModels(providerId),
     [providerId, providerSettingsService],
   );
+  const lookupModelInfo = useCallback(
+    (modelId: string) => providerSettingsService.lookupModelInfo(modelId),
+    [providerSettingsService],
+  );
+  const existingModelIds = useMemo(() => models.map((model) => model.modelId), [models]);
   const handleConfirmPickedModels = useCallback(
     async (modelIds: readonly string[]) => {
+      // models.dev 查询互不依赖可并发；查询失败不阻断添加，落盘为空配置走内建基线。
+      const lookups = await Promise.allSettled(modelIds.map(lookupModelInfo));
       const failures: string[] = [];
-      for (const modelId of modelIds) {
-        let config: ProviderSettingsFormModel["personalConfig"] = {};
-        try {
-          const info = await providerSettingsService.lookupModelInfo(modelId);
-          if (info.found) config = info.config as typeof config;
-        } catch {
-          // models.dev 查询失败不阻断添加；落盘为空配置走内建基线。
-        }
+      // 添加会逐个写入供应商配置，保持串行以免并发写覆盖。
+      for (const [index, modelId] of modelIds.entries()) {
+        const lookup = lookups[index];
+        const config =
+          lookup?.status === "fulfilled" && lookup.value.found ? lookup.value.config : {};
         try {
           await onAddModel({
             ...createEmptyModel(),
             modelId,
-            personalConfig: structuredClone(config),
+            personalConfig: structuredClone(config) as ProviderSettingsFormModel["personalConfig"],
             hasPersonalConfig: true,
             useRecommendedConfig: true,
           });
@@ -432,7 +445,7 @@ export function ProviderModelsSection({
         );
       }
     },
-    [intl, onAddModel, providerSettingsService],
+    [intl, lookupModelInfo, onAddModel],
   );
   const editor = useProviderModelDraft({
     model: addModel,
@@ -574,9 +587,7 @@ export function ProviderModelsSection({
                         personalConfig: structuredClone(personalConfig),
                       })
                     }
-                    onLookupModelInfo={(modelId) =>
-                      providerSettingsService.lookupModelInfo(modelId)
-                    }
+                    onLookupModelInfo={lookupModelInfo}
                     settingsRevision={settingsRevision}
                     onDelete={!model.builtin ? () => onDeleteModel(model.modelId) : undefined}
                     onEnabledChange={(enabled) => {
@@ -623,7 +634,7 @@ export function ProviderModelsSection({
           overrideFields={editor.overrides}
           onOpenChange={handleAddDialogOpenChange}
           onDraftChange={updateAddDraft}
-          onLookupModelInfo={(modelId) => providerSettingsService.lookupModelInfo(modelId)}
+          onLookupModelInfo={lookupModelInfo}
           onCommit={commitAddDraft}
           saving={addSaving}
           modelConfigResolutionPending={editor.pending}
@@ -636,7 +647,7 @@ export function ProviderModelsSection({
           onOpenChange={setRemotePickerOpen}
           onFetch={fetchRemoteModels}
           onConfirm={handleConfirmPickedModels}
-          existingModelIds={models.map((model) => model.modelId)}
+          existingModelIds={existingModelIds}
         />
       </>
     </div>

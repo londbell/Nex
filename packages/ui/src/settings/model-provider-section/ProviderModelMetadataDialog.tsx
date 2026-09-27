@@ -29,6 +29,7 @@ import {
   ProviderModelMetadataDialogActions,
   ModelConfigDraftFeedback,
   ModelConfigRestoreButton,
+  ModelInfoLookupButton,
 } from "@/settings/model-provider-section/ProviderModelMetadataDialogActions.js";
 import { modelEditorControlStyle } from "@/settings/model-provider-section/modelEditorControlStyle.js";
 import { cn } from "@/components/lib/utils.js";
@@ -38,6 +39,7 @@ import {
 } from "@/settings/model-provider-section/ModelConfigHelp.js";
 
 import { ModelEditorAdvanced } from "@/settings/model-provider-section/ModelEditorAdvanced.js";
+import { useModelInfoLookup } from "@/settings/model-provider-section/useModelInfoLookup.js";
 
 function selectFocusedInputText(event: Pick<FocusEvent<HTMLInputElement>, "currentTarget">) {
   event.currentTarget.select();
@@ -83,56 +85,15 @@ export function ProviderModelMetadataDialog({
 }) {
   const { intl } = useNexIntl();
   const [validationAttempt, setValidationAttempt] = useState(0);
-  const [lookupState, setLookupState] =
-    useState<{ status: "loading" } | { status: "success" } | { status: "error" } | null>(null);
+  const modelInfo = useModelInfoLookup({
+    open,
+    modelId: draft.idValue,
+    lookup: onLookupModelInfo,
+    onApply: onDraftChange,
+  });
   const commit = async () => {
     const result = await onCommit();
     if (!result) setValidationAttempt((value) => value + 1);
-  };
-  const handleLookupModelInfo = async () => {
-    const modelId = draft.idValue.trim();
-    if (!onLookupModelInfo || !modelId || saving) return;
-    setLookupState({ status: "loading" });
-    try {
-      const result = await onLookupModelInfo(modelId);
-      if (!result.found) {
-        setLookupState({ status: "error" });
-        return;
-      }
-      const properties = result.config.properties ?? {};
-      const inputFormat = properties.inputFormat;
-      onDraftChange({
-        ...(properties.contextWindow != null
-          ? { contextWindowValue: String(properties.contextWindow) }
-          : {}),
-        ...(result.config.optionSpecs?.maxOutputTokens?.max != null
-          ? { maxOutputTokensValue: String(result.config.optionSpecs.maxOutputTokens.max) }
-          : {}),
-        ...(result.config.optionSpecs?.reasoningLevel?.map != null
-          ? { reasoningLevelMapValue: result.config.optionSpecs.reasoningLevel.map }
-          : {}),
-        ...(result.config.optionSpecs?.reasoningLevel?.values != null
-          ? { reasoningLevelValuesValue: [...result.config.optionSpecs.reasoningLevel.values] }
-          : {}),
-        ...(inputFormat
-          ? {
-              inputFormatValue: {
-                supportsText: inputFormat.supportsText ?? true,
-                supportsImage: inputFormat.supportsImage ?? false,
-                supportsVideo: inputFormat.supportsVideo ?? false,
-                supportsAudio: inputFormat.supportsAudio ?? false,
-                supportsPdf: inputFormat.supportsPdf ?? false,
-              },
-            }
-          : {}),
-        ...(properties.supportsJsonSchemaOutput != null
-          ? { supportsJsonSchemaOutputValue: properties.supportsJsonSchemaOutput }
-          : {}),
-      });
-      setLookupState({ status: "success" });
-    } catch {
-      setLookupState({ status: "error" });
-    }
   };
   const contextWindowInputId = useId();
   const maxOutputInputId = useId();
@@ -409,29 +370,23 @@ export function ProviderModelMetadataDialog({
         <ModelConfigDraftFeedback
           error={
             draftErrorMessage ??
-            (lookupState?.status === "error"
+            (modelInfo.status === "not-found"
               ? intl.formatMessage({ id: "settings.modelProvider.modelInfoNotFound" })
-              : null)
+              : modelInfo.status === "failed"
+                ? intl.formatMessage({ id: "settings.modelProvider.modelInfoLookupFailed" })
+                : null)
           }
-          matched={lookupState?.status === "success"}
+          matched={modelInfo.status === "found"}
         />
         <ProviderModelMetadataDialogActions
           leadingAction={
             <div className="flex items-center gap-4">
-              {onLookupModelInfo ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="shrink-0 px-0 text-ui-sm text-foreground-subtle underline underline-offset-4 hover:bg-transparent"
-                  disabled={saving || lookupState?.status === "loading" || !draft.idValue.trim()}
-                  onClick={() => void handleLookupModelInfo()}
-                >
-                  {lookupState?.status === "loading" ? (
-                    <Loader2Icon className="size-3.5 animate-spin" aria-hidden="true" />
-                  ) : null}
-                  {intl.formatMessage({ id: "settings.modelProvider.fetchModelInfo" })}
-                </Button>
+              {modelInfo.available ? (
+                <ModelInfoLookupButton
+                  loading={modelInfo.status === "loading"}
+                  disabled={saving || !draft.idValue.trim()}
+                  onLookup={() => void modelInfo.run()}
+                />
               ) : null}
               <ModelConfigRestoreButton disabled={saving} onRestore={onRestore} />
             </div>

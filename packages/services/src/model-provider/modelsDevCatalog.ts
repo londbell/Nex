@@ -1,70 +1,44 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
-import type { z } from "zod";
-import {
-  modelConfigDataSchema,
-  type ModelInputFormatData,
-  type ModelPropertiesData,
-} from "@nex/shared/model-config";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import type { ModelConfigObject } from "@nex/provider";
+import type { ModelInputFormatData } from "@nex/shared/model-config";
 import { getAppConfigDir } from "../paths.js";
+import type { ModelInfoLookupResult } from "./providerFacadeServices.js";
 
 /**
- * models.dev 公共模型目录客户端。
+ * models.dev 公共模型目录客户端（仅 Node 进程可用）。
  *
  * 职责：拉取并缓存 https://models.dev/api.json，把命中的模型条目映射为
- * 稀疏 ModelConfig 覆盖（contextWindow / maxOutputTokens / 输入输出格式 /
- * 工具调用 / JSON Schema 输出），供模型编辑器"填入模型信息"使用。
+ * 稀疏 ModelConfig（contextWindow / maxOutputTokens / 推理档位 / 输入输出格式 /
+ * 工具调用 / JSON Schema 输出），供模型编辑器"获取模型信息"使用。
  *
- * 注意点：用户侧模型 ID 可能带命名空间前缀（如 "cli/gpt-5.6-sol"），
- * 查找时先全量精确匹配，再按命名空间匹配供应商，最后退化为去掉前缀的
- * 模型名跨供应商匹配；大小写不敏感。
+ * 用户侧模型 ID 可能带命名空间前缀（如 "cli/gpt-5.6-sol"），查找时同时匹配
+ * 完整 ID 与去掉前缀后的模型名，大小写不敏感；跨供应商的同名条目聚合后再使用。
  */
 
 const MODELS_DEV_API_URL = "https://models.dev/api.json";
-
-type ModelConfigData = z.infer<typeof modelConfigDataSchema>;
-const CACHE_DIR_NAME = "models-dev";
-const CACHE_FILE_NAME = "api.json";
 const REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 10_000;
 
-interface ModelsDevModalities {
-  readonly input?: readonly string[];
-  readonly output?: readonly string[];
-}
-
-interface ModelsDevLimit {
-  readonly context?: number;
-  readonly output?: number;
-}
-
-interface ModelsDevReasoningOption {
-  readonly type?: string;
-  readonly values?: readonly string[];
-}
-
 interface ModelsDevModel {
-  readonly id?: string;
-  readonly name?: string;
-  readonly modalities?: ModelsDevModalities;
-  readonly limit?: ModelsDevLimit;
+  readonly modalities?: { readonly input?: readonly string[] };
+  readonly limit?: { readonly context?: number; readonly output?: number };
   readonly tool_call?: boolean;
   readonly structured_output?: boolean;
-  readonly reasoning?: boolean;
-  readonly reasoning_options?: readonly ModelsDevReasoningOption[];
+  readonly reasoning_options?: readonly {
+    readonly type?: string;
+    readonly values?: readonly string[];
+  }[];
 }
 
 interface ModelsDevProvider {
-  readonly id?: string;
-  readonly name?: string;
   readonly models?: Record<string, ModelsDevModel>;
 }
 
-type ModelsDevCatalog = Record<string, ModelsDevProvider>;
+export type ModelsDevCatalog = Record<string, ModelsDevProvider>;
 
 export interface ModelsDevMatch {
   readonly providerId: string;
-  readonly providerName?: string;
   readonly model: ModelsDevModel;
 }
 
@@ -77,28 +51,35 @@ let memoryCache: CatalogCache | null = null;
 let inflight: Promise<ModelsDevCatalog | null> | null = null;
 
 function cacheFilePath(): string {
-  return join(getAppConfigDir(), "runtime", CACHE_DIR_NAME, CACHE_FILE_NAME);
+  return join(getAppConfigDir(), "runtime", "models-dev", "api.json");
 }
 
-function readDiskCache(): CatalogCache | null {
+function isCatalog(value: unknown): value is ModelsDevCatalog {
+  return typeof value === "object" && value !== null && Object.keys(value).length > 0;
+}
+
+async function readDiskCache(): Promise<CatalogCache | null> {
   try {
-    if (!existsSync(cacheFilePath())) return null;
-    const parsed = JSON.parse(readFileSync(cacheFilePath(), "utf8")) as {
-      fetchedAt?: number;
-      data?: ModelsDevCatalog;
+    const parsed = JSON.parse(await readFile(cacheFilePath(), "utf8")) as Partial<CatalogCache>;
+    if (!isCatalog(parsed?.data)) return null;
+    return {
+      data: parsed.data,
+      fetchedAt: typeof parsed.fetchedAt === "number" ? parsed.fetchedAt : 0,
     };
-    if (!parsed.data || typeof parsed !== "object") return null;
-    return { data: parsed.data, fetchedAt: parsed.fetchedAt ?? 0 };
   } catch {
+    // 文件不存在或内容损坏都等价于"无缓存"。
     return null;
   }
 }
 
-function writeDiskCache(cache: CatalogCache): void {
+async function writeDiskCache(cache: CatalogCache): Promise<void> {
+  const filePath = cacheFilePath();
+  const tempPath = `${filePath}.${process.pid}.tmp`;
   try {
-    const directory = join(getAppConfigDir(), "runtime", CACHE_DIR_NAME);
-    mkdirSync(directory, { recursive: true });
-    writeFileSync(cacheFilePath(), JSON.stringify(cache), "utf8");
+    await mkdir(dirname(filePath), { recursive: true });
+    // 先写临时文件再 rename，避免多进程并发读到半截 JSON。
+    await writeFile(tempPath, JSON.stringify(cache), "utf8");
+    await rename(tempPath, filePath);
   } catch {
     // 缓存写失败只影响下次拉取速度，不阻塞目录使用。
   }
@@ -109,66 +90,58 @@ async function fetchCatalog(): Promise<ModelsDevCatalog> {
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     headers: { accept: "application/json" },
   });
-  if (!response.ok) throw new Error(`models.dev API 响应异常: HTTP ${response.status}`);
-  const data = (await response.json()) as ModelsDevCatalog;
-  if (!data || typeof data !== "object" || Object.keys(data).length === 0)
-    throw new Error("models.dev API 返回了空目录");
+  if (!response.ok) throw new Error(`models.dev API responded with HTTP ${response.status}`);
+  const data: unknown = await response.json();
+  if (!isCatalog(data)) throw new Error("models.dev API returned an empty catalog");
   return data;
 }
 
-/** 加载目录：内存 → 磁盘（未过期）→ 网络；任何失败都退回过期数据或 null。 */
-export async function loadModelsDevCatalog(): Promise<ModelsDevCatalog | null> {
-  const now = Date.now();
-  if (memoryCache && now - memoryCache.fetchedAt < REFRESH_INTERVAL_MS) return memoryCache.data;
-  const disk = readDiskCache();
-  if (disk && now - disk.fetchedAt < REFRESH_INTERVAL_MS) {
+function isFresh(cache: CatalogCache): boolean {
+  return Date.now() - cache.fetchedAt < REFRESH_INTERVAL_MS;
+}
+
+async function loadCatalog(): Promise<ModelsDevCatalog | null> {
+  const disk = await readDiskCache();
+  if (disk && isFresh(disk)) {
     memoryCache = disk;
     return disk.data;
   }
-  inflight ??= fetchCatalog()
-    .then((data) => {
-      memoryCache = { data, fetchedAt: Date.now() };
-      writeDiskCache(memoryCache);
-      return data;
-    })
-    .catch(() => (disk ? (memoryCache = disk).data : null))
-    .finally(() => {
-      inflight = null;
-    });
+  try {
+    const data = await fetchCatalog();
+    memoryCache = { data, fetchedAt: Date.now() };
+    await writeDiskCache(memoryCache);
+    return data;
+  } catch {
+    // 离线时退回过期的磁盘数据；不写入内存缓存，下次调用仍会重试网络。
+    return disk?.data ?? null;
+  }
+}
+
+/** 加载目录：内存 → 磁盘（未过期）→ 网络；网络失败时退回过期数据，全都没有时返回 null。 */
+function loadModelsDevCatalog(): Promise<ModelsDevCatalog | null> {
+  if (memoryCache && isFresh(memoryCache)) return Promise.resolve(memoryCache.data);
+  inflight ??= loadCatalog().finally(() => {
+    inflight = null;
+  });
   return inflight;
 }
 
-function normalizeId(value: string): string {
-  return value.trim().toLowerCase();
-}
-
 /**
- * 命名空间感知查找，返回所有命中条目。跨供应商同名模型很常见
- * （聚合商与官方并存，字段值需要聚合后再信任）：
- * 1. 全量精确匹配完整 ID；
- * 2. "ns/model" 形式：额外尝试去掉命名空间后的模型名；
- * 3. 大小写不敏感。
+ * 命名空间感知查找，返回所有命中条目（聚合商与官方同名条目并存很常见）：
+ * 同时匹配完整 ID 与 "ns/model" 去掉命名空间后的模型名，大小写不敏感。
  */
-export function findModelsDevModels(
-  catalog: ModelsDevCatalog,
-  modelId: string,
-): ModelsDevMatch[] {
-  const raw = modelId.trim();
-  if (!raw) return [];
-  const normalized = normalizeId(raw);
-  const candidates = new Set([raw, normalized]);
-  const separatorIndex = raw.indexOf("/");
-  if (separatorIndex > 0 && separatorIndex < raw.length - 1) {
-    const rest = raw.slice(separatorIndex + 1);
-    candidates.add(rest);
-    candidates.add(normalizeId(rest));
+export function findModelsDevModels(catalog: ModelsDevCatalog, modelId: string): ModelsDevMatch[] {
+  const normalized = modelId.trim().toLowerCase();
+  if (!normalized) return [];
+  const candidates = new Set([normalized]);
+  const separatorIndex = normalized.indexOf("/");
+  if (separatorIndex > 0 && separatorIndex < normalized.length - 1) {
+    candidates.add(normalized.slice(separatorIndex + 1));
   }
   const matches: ModelsDevMatch[] = [];
   for (const [providerId, provider] of Object.entries(catalog)) {
     for (const [modelKey, model] of Object.entries(provider.models ?? {})) {
-      if (candidates.has(modelKey) || candidates.has(normalizeId(modelKey))) {
-        matches.push({ providerId, providerName: provider.name, model });
-      }
+      if (candidates.has(modelKey.trim().toLowerCase())) matches.push({ providerId, model });
     }
   }
   return matches;
@@ -182,159 +155,109 @@ const INPUT_MODALITY_KEYS = {
   pdf: "supportsPdf",
 } as const satisfies Record<string, keyof ModelInputFormatData>;
 
-/** 众数聚合；平票时数值取最大（更接近官方值），布尔取 true 优先。 */
-function majorityValue<T extends number | boolean | string>(
-  values: readonly T[],
+/**
+ * 众数聚合。平票时数值取最大（聚合商常把上限缩水，最大值更接近官方），
+ * 布尔取 true，其余保持首次出现的顺序。
+ */
+function majority<T extends number | boolean>(values: readonly (T | undefined)[]): T | undefined;
+function majority<T>(
+  values: readonly (T | undefined)[],
+  keyOf: (value: T) => string,
+): T | undefined;
+function majority<T>(
+  values: readonly (T | undefined)[],
+  keyOf: (value: T) => string = String,
 ): T | undefined {
-  if (values.length === 0) return undefined;
   const counts = new Map<string, { value: T; count: number }>();
   for (const value of values) {
-    const entry = counts.get(String(value));
+    if (value === undefined) continue;
+    const key = keyOf(value);
+    const entry = counts.get(key);
     if (entry) entry.count += 1;
-    else counts.set(String(value), { value, count: 1 });
+    else counts.set(key, { value, count: 1 });
   }
-  return [...counts.values()].sort(
-    (a, b) =>
-      b.count - a.count ||
-      (typeof b.value === "number" && typeof a.value === "number"
-        ? b.value - a.value
-        : Number(b.value === true) - Number(a.value === true)),
-  )[0]!.value;
+  let best: { value: T; count: number } | undefined;
+  for (const entry of counts.values()) {
+    if (
+      !best ||
+      entry.count > best.count ||
+      (entry.count === best.count && prefers(entry.value, best.value))
+    )
+      best = entry;
+  }
+  return best?.value;
 }
 
-/** 跨供应商聚合同一模型的条目，产出单一稀疏覆盖。 */
-export function modelConfigOverlayFromMatches(matches: readonly ModelsDevMatch[]): ModelConfigData {
-  const contexts = matches
-    .map((m) => m.model.limit?.context)
-    .filter((v): v is number => typeof v === "number" && v > 0);
-  const outputs = matches
-    .map((m) => m.model.limit?.output)
-    .filter((v): v is number => typeof v === "number" && v > 0);
-  const toolCalls = matches
-    .map((m) => m.model.tool_call)
-    .filter((v): v is boolean => typeof v === "boolean");
-  const structured = matches
-    .map((m) => m.model.structured_output)
-    .filter((v): v is boolean => typeof v === "boolean");
-  // 推理等级：取 effort 类型 options 的 values 众数（跨供应商一致即官方档位）。
-  const reasoningValues = majorityValue<string>(
-    matches
-      .map((m) =>
-        JSON.stringify(
-          (m.model.reasoning_options ?? []).find((o) => o.type === "effort")?.values ?? null,
-        ),
-      )
-      .filter((v) => v !== "null"),
-  );
+function prefers(candidate: unknown, current: unknown): boolean {
+  if (typeof candidate === "number" && typeof current === "number") return candidate > current;
+  return candidate === true && current !== true;
+}
 
-  const properties: Partial<ModelPropertiesData> = {};
-  const contextWindow = majorityValue(contexts);
-  if (contextWindow !== undefined) properties.contextWindow = contextWindow;
-  const toolCall = majorityValue(toolCalls);
-  if (toolCall !== undefined) properties.supportsToolCall = toolCall;
-  const structuredOutput = majorityValue(structured);
-  if (structuredOutput !== undefined) properties.supportsJsonSchemaOutput = structuredOutput;
+function positiveInteger(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
+}
 
-  // 输入模态：任一条目声明支持的类型视为支持；有模态数据时缺失类型按不支持。
-  const withModalities = matches.filter((m) => Array.isArray(m.model.modalities?.input));
-  if (withModalities.length > 0) {
-    const inputFormat: Partial<ModelInputFormatData> = {};
-    for (const key of Object.values(INPUT_MODALITY_KEYS)) inputFormat[key] = false;
-    for (const match of withModalities) {
-      for (const modality of match.model.modalities!.input!) {
-        const key = INPUT_MODALITY_KEYS[modality as keyof typeof INPUT_MODALITY_KEYS];
-        if (key) inputFormat[key] = true;
-      }
-    }
-    properties.inputFormat = inputFormat as ModelInputFormatData;
-    properties.outputFormat = { supportsText: true };
+function booleanValue(value: unknown): boolean | undefined {
+  return typeof value === "boolean" ? value : undefined;
+}
+
+/** effort 类推理档位；空数组或含空串/重复项的数据不满足 reasoningLevel.values 约束，直接丢弃。 */
+function effortLevels(model: ModelsDevModel): readonly string[] | undefined {
+  const values = model.reasoning_options?.find((option) => option.type === "effort")?.values;
+  if (!Array.isArray(values) || values.length === 0) return undefined;
+  if (values.some((value) => typeof value !== "string" || !value.trim())) return undefined;
+  return new Set(values).size === values.length ? values : undefined;
+}
+
+/** 跨供应商聚合同一模型的条目，产出单一稀疏 ModelConfig。 */
+export function modelConfigFromMatches(matches: readonly ModelsDevMatch[]): ModelConfigObject {
+  const models = matches.map((match) => match.model);
+  const contextWindow = majority(models.map((m) => positiveInteger(m.limit?.context)));
+  const maxOutputTokens = majority(models.map((m) => positiveInteger(m.limit?.output)));
+  const supportsToolCall = majority(models.map((m) => booleanValue(m.tool_call)));
+  const supportsJsonSchemaOutput = majority(models.map((m) => booleanValue(m.structured_output)));
+  const reasoningLevels = majority(models.map(effortLevels), (values) => values.join("\u0000"));
+
+  // 输入模态：任一条目声明支持即视为支持；有模态数据时未声明的类型按不支持。
+  const modalityLists = models
+    .map((m) => m.modalities?.input)
+    .filter((input): input is readonly string[] => Array.isArray(input));
+  let inputFormat: ModelInputFormatData | undefined;
+  if (modalityLists.length > 0) {
+    const declared = new Set(modalityLists.flat());
+    inputFormat = Object.fromEntries(
+      Object.entries(INPUT_MODALITY_KEYS).map(([modality, key]) => [key, declared.has(modality)]),
+    ) as unknown as ModelInputFormatData;
   }
 
-  const propertiesResult =
-    Object.keys(properties).length > 0 ? (properties as ModelPropertiesData) : undefined;
-  const maxOutputTokens = majorityValue(outputs);
-  const reasoningLevel =
-    reasoningValues !== undefined
-      ? { values: JSON.parse(reasoningValues) as string[] }
-      : undefined;
-  const optionSpecs =
-    maxOutputTokens !== undefined || reasoningLevel !== undefined
-      ? {
-          ...(maxOutputTokens !== undefined ? { maxOutputTokens: { max: maxOutputTokens } } : {}),
-          ...(reasoningLevel !== undefined ? { reasoningLevel } : {}),
-        }
-      : undefined;
-  if (!propertiesResult && !optionSpecs) return {};
+  const properties = {
+    ...(contextWindow !== undefined ? { contextWindow } : {}),
+    ...(supportsToolCall !== undefined ? { supportsToolCall } : {}),
+    ...(supportsJsonSchemaOutput !== undefined ? { supportsJsonSchemaOutput } : {}),
+    ...(inputFormat ? { inputFormat, outputFormat: { supportsText: true } } : {}),
+  };
+  const optionSpecs = {
+    ...(maxOutputTokens !== undefined ? { maxOutputTokens: { max: maxOutputTokens } } : {}),
+    ...(reasoningLevels !== undefined ? { reasoningLevel: { values: [...reasoningLevels] } } : {}),
+  };
   return {
-    ...(propertiesResult ? { properties: propertiesResult } : {}),
-    ...(optionSpecs ? { optionSpecs } : {}),
+    ...(Object.keys(properties).length > 0 ? { properties } : {}),
+    ...(Object.keys(optionSpecs).length > 0 ? { optionSpecs } : {}),
   };
 }
 
-type SparseRecord = Record<string, unknown>;
-
-function mergeSection<T extends SparseRecord>(
-  base: T | null | undefined,
-  overlay: T,
-): T {
-  const merged: SparseRecord = { ...base };
-  for (const [key, value] of Object.entries(overlay)) {
-    if (value !== undefined) merged[key] = value;
-  }
-  return merged as T;
-}
-
-/** 稀疏合并：models.dev 命中的字段覆盖基线（内建通配推荐），未命中的字段保留基线。 */
-export function mergeModelConfigData(
-  base: ModelConfigData,
-  overlay: ModelConfigData,
-): ModelConfigData {
-  const merged: ModelConfigData = { ...base };
-  const overlayProperties = overlay.properties;
-  if (overlayProperties) {
-    const baseProperties = merged.properties;
-    merged.properties = {
-      ...mergeSection(baseProperties, overlayProperties),
-      ...(overlayProperties.inputFormat
-        ? {
-            inputFormat: mergeSection(baseProperties?.inputFormat, overlayProperties.inputFormat),
-          }
-        : {}),
-      ...(overlayProperties.outputFormat
-        ? {
-            outputFormat: mergeSection(
-              baseProperties?.outputFormat,
-              overlayProperties.outputFormat,
-            ),
-          }
-        : {}),
-    } as ModelPropertiesData;
-  }
-  if (overlay.optionSpecs) {
-    merged.optionSpecs = mergeSection(merged.optionSpecs, overlay.optionSpecs);
-  }
-  return merged;
-}
-
-export interface ModelsDevModelInfo {
-  readonly found: boolean;
-  readonly providerId?: string;
-  readonly config: ModelConfigData;
-}
-
-/** "获取模型信息"入口：按模型 ID 查询 models.dev 并聚合成稀疏配置；失败返回 found:false。 */
-export async function lookupModelsDevModelInfo(modelId: string): Promise<ModelsDevModelInfo> {
-  try {
-    const catalog = await loadModelsDevCatalog();
-    if (!catalog) return { found: false, config: {} };
-    const matches = findModelsDevModels(catalog, modelId);
-    if (matches.length === 0) return { found: false, config: {} };
-    return {
-      found: true,
-      providerId: matches[0]!.providerId,
-      config: modelConfigOverlayFromMatches(matches),
-    };
-  } catch {
-    return { found: false, config: {} };
-  }
+/**
+ * "获取模型信息"入口：按模型 ID 查询 models.dev 并聚合成稀疏配置。
+ * 目录不可用（离线且无缓存）时抛错，让调用方区分"未收录"与"查询失败"。
+ */
+export async function lookupModelsDevModelInfo(modelId: string): Promise<ModelInfoLookupResult> {
+  const catalog = await loadModelsDevCatalog();
+  if (!catalog) throw new Error("models.dev catalog is unavailable");
+  const matches = findModelsDevModels(catalog, modelId);
+  if (matches.length === 0) return { found: false, config: {} };
+  return {
+    found: true,
+    providerId: matches[0]!.providerId,
+    config: modelConfigFromMatches(matches),
+  };
 }

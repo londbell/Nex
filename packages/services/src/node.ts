@@ -10,7 +10,7 @@ import {
   PERSONAL_PROVIDER_CONFIG_FILE_NAME,
 } from "@nex/provider-node";
 import { getAppConfigDir as resolveAppConfigDir } from "./paths.js";
-import { createProviderSettingsWithModelsDevLookup } from "./model-provider/modelsDevEnrichment.js";
+import { createProviderSettingsWithModelsDevLookup } from "./model-provider/modelsDevLookupService.js";
 import {
   buildLocalMediaPreviewUrl,
   isProviderProvisioningAccountCredentialKey,
@@ -1592,9 +1592,7 @@ export function createLocalServices(options: {
       });
     },
   );
-  let providerConnectivityAgentService:
-    | Pick<INexAgentService, "testModelConnectivity">
-    | undefined;
+  let providerConnectivityAgentService: Pick<INexAgentService, "testModelConnectivity"> | undefined;
   const providerRuntime = createProviderRuntimeFromConfigRuntime({
     configRuntime: providerConfigRuntime,
     accountSource: accountProviderConfigSource,
@@ -2593,7 +2591,10 @@ export function createLocalServices(options: {
   providerProvisioningSources.set(services, providerProvisioningSource);
   providerProvisioningTriggerDisposers.set(services, providerProvisioningDisposers);
   services
-    .register(IProviderSettingsService, createProviderSettingsWithModelsDevLookup(providerRuntime.providerSettings))
+    .register(
+      IProviderSettingsService,
+      createProviderSettingsWithModelsDevLookup(providerRuntime.providerSettings),
+    )
     .register(IModelSelectionService, providerRuntime.modelSelection);
   if (isDesktopAttachedRemote || options.providerProvisioningTargetEnabled === true) {
     services.register(

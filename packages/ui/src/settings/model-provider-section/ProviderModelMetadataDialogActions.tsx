@@ -25,6 +25,32 @@ export function ModelConfigRestoreButton({
   );
 }
 
+/** "获取模型信息"：按当前模型 ID 查询 models.dev 并填入表单。 */
+export function ModelInfoLookupButton({
+  loading,
+  disabled,
+  onLookup,
+}: {
+  loading: boolean;
+  disabled: boolean;
+  onLookup: () => void;
+}) {
+  const { intl } = useNexIntl();
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      className="shrink-0 px-0 text-ui-sm text-foreground-subtle underline underline-offset-4 hover:bg-transparent"
+      disabled={disabled || loading}
+      onClick={onLookup}
+    >
+      {loading ? <Loader2Icon className="size-3.5 animate-spin" aria-hidden="true" /> : null}
+      {intl.formatMessage({ id: "settings.modelProvider.fetchModelInfo" })}
+    </Button>
+  );
+}
+
 export function ModelConfigDraftFeedback({
   error,
   matched,
