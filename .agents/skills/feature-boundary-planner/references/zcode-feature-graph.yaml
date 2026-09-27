@@ -1,7 +1,7 @@
 # Maintainer contract: docs/skills/feature-boundary-graph.md
 # Search aliases and IDs first; read only the relevant nodes and one-hop relationships.
 schemaVersion: 1
-graphId: zcode-feature-relationships
+graphId: nex-feature-relationships
 purpose:
   Curated source discovery seeds, not an exhaustive feature catalog or a product authority. Verify
   matched nodes and relationships against the current checkout.
@@ -140,7 +140,7 @@ nodes:
     codeSeeds:
       - file: packages/ui/src/settings/SubagentsSection.tsx
         symbol: SubagentsSection
-      - file: apps/zcode-cli/packages/core/src/tool/handlers/agent.ts
+      - file: apps/nex-cli/packages/core/src/tool/handlers/agent.ts
         symbol: agentHandler
   - id: state.subagent-form-draft
     kind: state-owner
@@ -179,9 +179,9 @@ nodes:
       - 引导
       - 消息队列
     codeSeeds:
-      - file: apps/zcode-cli/packages/bootstrap/src/zcode-protocol-v4/v4-gateway.ts
+      - file: apps/nex-cli/packages/bootstrap/src/nex-protocol-v4/v4-gateway.ts
         symbol: ConversationV4Gateway
-      - file: apps/zcode-cli/packages/bootstrap/src/zcode-protocol-v4/commands/handlers/session-flow.ts
+      - file: apps/nex-cli/packages/bootstrap/src/nex-protocol-v4/commands/handlers/session-flow.ts
         symbol: sendText
   - id: state.conversation-projection
     kind: state-owner
@@ -205,7 +205,7 @@ nodes:
     codeSeeds:
       - file: packages/ui/src/lib/remoteWorkspaceHistory.ts
         symbol: buildRemoteWorkspaceIdentity
-      - file: packages/services/src/zcode-agent/zcodeAgentConnectionScope.ts
+      - file: packages/services/src/nex-agent/nexAgentConnectionScope.ts
         symbol: workspaceKey
   - id: service.workspace-identity-builder
     kind: service
@@ -230,28 +230,28 @@ nodes:
     codeSeeds:
       - symbol: TaskIndexRepo
         file: packages/services/src/session/taskIndexRepo.ts
-  - id: service.zcode-agent-connection-scope
+  - id: service.nex-agent-connection-scope
     kind: service
-    label: Host-trusted ZCode Agent attachment connection scope
+    label: Host-trusted Nex Agent attachment connection scope
     codeSeeds:
-      - symbol: createZCodeAgentConnectionScope
-        file: packages/services/src/zcode-agent/zcodeAgentConnectionScope.ts
+      - symbol: createNexAgentConnectionScope
+        file: packages/services/src/nex-agent/nexAgentConnectionScope.ts
   - id: boundary.desktop-continuous
     kind: delivery-boundary
     label: Desktop continuous delivery
     codeSeeds:
-      - file: packages/shared/src/zcode-protocol-v4/core.ts
+      - file: packages/shared/src/nex-protocol-v4/core.ts
         symbol: DELIVERY_PROFILES
-      - file: packages/services/src/zcode-agent/zcodeAgentConnectionScope.ts
-        symbol: ZCodeAgentV4ClientMode
+      - file: packages/services/src/nex-agent/nexAgentConnectionScope.ts
+        symbol: NexAgentV4ClientMode
   - id: boundary.web-remote-replayable
     kind: delivery-boundary
     label: Web remote replayable delivery
     codeSeeds:
-      - file: packages/shared/src/zcode-protocol-v4/core.ts
+      - file: packages/shared/src/nex-protocol-v4/core.ts
         symbol: DELIVERY_PROFILES
-      - file: packages/services/src/zcode-agent/zcodeAgentConnectionScope.ts
-        symbol: ZCodeAgentV4ClientMode
+      - file: packages/services/src/nex-agent/nexAgentConnectionScope.ts
+        symbol: NexAgentV4ClientMode
   - id: capability.composer-trigger-routing
     kind: capability
     label: Composer primary and compatibility trigger routing
@@ -316,7 +316,7 @@ nodes:
     kind: service
     label: CLI serial command admission and idempotency
     codeSeeds:
-      - file: apps/zcode-cli/packages/bootstrap/src/zcode-protocol-v4/command-inbox.ts
+      - file: apps/nex-cli/packages/bootstrap/src/nex-protocol-v4/command-inbox.ts
         symbol: CommandInbox
     aliases:
       - busy input
@@ -327,13 +327,13 @@ nodes:
     kind: state-owner
     label: CLI authoritative projection of runtime events
     codeSeeds:
-      - file: apps/zcode-cli/packages/bootstrap/src/zcode-protocol-v4/product-projection.ts
+      - file: apps/nex-cli/packages/bootstrap/src/nex-protocol-v4/product-projection.ts
         symbol: ProductProjection
   - id: service.conversation-topic-publisher
     kind: service
     label: CLI conversation delta publication and subscription recovery
     codeSeeds:
-      - file: apps/zcode-cli/packages/bootstrap/src/zcode-protocol-v4/conversation-topic-publisher.ts
+      - file: apps/nex-cli/packages/bootstrap/src/nex-protocol-v4/conversation-topic-publisher.ts
         symbol: ConversationTopicPublisher
   - id: state.composer-submission-intent
     kind: state-owner
@@ -347,13 +347,13 @@ nodes:
     kind: service
     label: CLI sendText submission handling
     codeSeeds:
-      - file: apps/zcode-cli/packages/bootstrap/src/zcode-protocol-v4/commands/handlers/session-flow.ts
+      - file: apps/nex-cli/packages/bootstrap/src/nex-protocol-v4/commands/handlers/session-flow.ts
         symbol: sendText
   - id: service.runtime-submission-execution
     kind: service
     label: Runtime applies the admitted submission selection at execution
     codeSeeds:
-      - file: apps/zcode-cli/packages/core/src/runtime/methods/turn-model.ts
+      - file: apps/nex-cli/packages/core/src/runtime/methods/turn-model.ts
         symbol: applySubmissionExecutionState
 edges:
   - from: capability.model-selection
@@ -484,7 +484,7 @@ edges:
     type: delivers-snapshot-and-deltas-to
     rank: must-inspect
   - from: capability.conversation-runtime
-    to: service.zcode-agent-connection-scope
+    to: service.nex-agent-connection-scope
     type: attaches-through
     rank: must-inspect
   - from: service.conversation-topic-publisher
@@ -492,7 +492,7 @@ edges:
     type: uses-delivery-policy
     rank: conditional
     condition: For Desktop continuous attachments.
-  - from: service.zcode-agent-connection-scope
+  - from: service.nex-agent-connection-scope
     to: boundary.desktop-continuous
     type: injects-trusted-client-mode
     rank: conditional
@@ -502,7 +502,7 @@ edges:
     type: uses-delivery-policy
     rank: conditional
     condition: For replayable Web remote and mobile attachments.
-  - from: service.zcode-agent-connection-scope
+  - from: service.nex-agent-connection-scope
     to: boundary.web-remote-replayable
     type: injects-trusted-client-mode
     rank: conditional
@@ -526,7 +526,7 @@ edges:
     to: boundary.workspace-key
     type: supplies-identity-for
     rank: must-inspect
-  - from: service.zcode-agent-connection-scope
+  - from: service.nex-agent-connection-scope
     to: boundary.workspace-key
     type: isolated-by
     rank: must-inspect
