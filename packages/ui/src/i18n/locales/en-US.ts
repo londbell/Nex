@@ -3362,7 +3362,9 @@ const enUS: Record<string, string> = {
     "Use a CEL expression to map the current reasoning level, `reasoningLevel`, to model API request fields. The JSON object returned by the expression is merged into the outgoing request body.",
   "settings.modelProvider.help.advanced":
     "**MFJS tool schema**: Enables Moonshot Flavored JSON Schema compatibility, commonly used by Moonshot's Kimi model API. Enable only when the model API requires this format.",
+  "settings.modelProvider.fetchModelInfo": "Fetch model info",
   "settings.modelProvider.modelDefaultsLoaded": "Model info filled from models.dev",
+  "settings.modelProvider.modelInfoNotFound": "Model not found on models.dev. Fill in the config manually.",
   "settings.modelProvider.modelConfigIncomplete": "Model configuration is incomplete",
   "settings.modelProvider.models": "Model list",
   "settings.modelProvider.modelsEmpty": "No models are configured. Add a model to use it in chat.",

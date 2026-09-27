@@ -3142,7 +3142,9 @@ const zhCN: Record<string, string> = {
     "使用 CEL 表达式，将当前推理等级 `reasoningLevel` 映射为模型接口的请求字段。表达式返回的 JSON 对象会合并到实际发送的请求体中。",
   "settings.modelProvider.help.advanced":
     "**MFJS 工具 Schema**：启用 Moonshot Flavored JSON Schema（Moonshot 的 JSON Schema 格式）兼容处理，常用于 Moonshot 的 Kimi 模型接口。仅在模型接口要求该格式时开启。",
+  "settings.modelProvider.fetchModelInfo": "获取模型信息",
   "settings.modelProvider.modelDefaultsLoaded": "已从 models.dev 填入模型信息",
+  "settings.modelProvider.modelInfoNotFound": "models.dev 未收录该模型，请手动填写配置",
   "settings.modelProvider.modelConfigIncomplete": "模型配置不完整",
   "settings.modelProvider.models": "模型列表",
   "settings.modelProvider.modelsEmpty": "当前没有配置模型，添加模型后可在聊天中使用。",

@@ -27,6 +27,14 @@ export type {
   ProviderSettingsView,
 } from "@nex/provider";
 
+export interface ModelInfoLookupResult {
+  readonly found: boolean;
+  /** models.dev 上的供应商标识，未命中时省略。 */
+  readonly providerId?: string;
+  /** 命中条目映射出的稀疏 ModelConfig；未命中时为空对象。 */
+  readonly config: ModelConfigObject;
+}
+
 export interface IProviderSettingsService {
   readonly onDidChange: Event<ProviderSettingsView>;
   getView(): Promise<ProviderSettingsView>;
@@ -35,6 +43,8 @@ export interface IProviderSettingsService {
     input?: Parameters<ProviderSettingsFacade["createPersonalProvider"]>[0],
   ): Promise<ProviderSettingsCreationResult>;
   resolveModelConfig(input: ResolveModelConfigInput): Promise<ModelConfigResolution>;
+  /** 手动"获取模型信息"：按模型 ID 查询 models.dev 目录并返回稀疏配置。 */
+  lookupModelInfo(modelId: ModelId): Promise<ModelInfoLookupResult>;
   savePersonalProviderOverlay(
     providerId: ProviderId,
     config: ProviderConfigObject,
@@ -113,6 +123,9 @@ export function createProviderSettingsService(
 ): IProviderSettingsService {
   return {
     onDidChange: toEvent((listener) => facade.onDidChange(listener)),
+    // 默认空实现：models.dev 查询依赖 Node 侧磁盘缓存，由
+    // createProviderSettingsWithModelsDevLookup 在服务端装配时覆盖。
+    lookupModelInfo: async () => ({ found: false, config: {} }),
     getView: async () => {
       await ensureReady();
       return facade.getView();

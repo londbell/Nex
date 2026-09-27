@@ -288,18 +288,25 @@ export function mergeModelConfigData(
   return merged;
 }
 
-/** 便捷入口：目录查找 + 覆盖生成一步完成；任何失败都返回 null（不影响基础解析）。 */
-export async function lookupModelsDevOverlay(
-  modelId: string,
-): Promise<ModelConfigData | null> {
+export interface ModelsDevModelInfo {
+  readonly found: boolean;
+  readonly providerId?: string;
+  readonly config: ModelConfigData;
+}
+
+/** "获取模型信息"入口：按模型 ID 查询 models.dev 并聚合成稀疏配置；失败返回 found:false。 */
+export async function lookupModelsDevModelInfo(modelId: string): Promise<ModelsDevModelInfo> {
   try {
     const catalog = await loadModelsDevCatalog();
-    if (!catalog) return null;
+    if (!catalog) return { found: false, config: {} };
     const matches = findModelsDevModels(catalog, modelId);
-    if (matches.length === 0) return null;
-    const overlay = modelConfigOverlayFromMatches(matches);
-    return Object.keys(overlay).length > 0 ? overlay : null;
+    if (matches.length === 0) return { found: false, config: {} };
+    return {
+      found: true,
+      providerId: matches[0]!.providerId,
+      config: modelConfigOverlayFromMatches(matches),
+    };
   } catch {
-    return null;
+    return { found: false, config: {} };
   }
 }

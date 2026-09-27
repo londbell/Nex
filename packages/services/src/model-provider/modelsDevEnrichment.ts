@@ -1,38 +1,29 @@
-import type { ModelConfigResolution, ResolveModelConfigInput } from "@nex/provider";
-import type { IProviderSettingsService } from "./providerFacadeServices.js";
-import { lookupModelsDevOverlay, mergeModelConfigData } from "./modelsDevCatalog.js";
+import type { ModelId } from "@nex/provider";
+import type {
+  IProviderSettingsService,
+  ModelInfoLookupResult,
+} from "./providerFacadeServices.js";
+import { lookupModelsDevModelInfo } from "./modelsDevCatalog.js";
 
 /**
- * "填入模型信息"装配：在 server 侧给 provider-settings 服务的模型配置解析
- * 叠加 models.dev 目录命中结果。
+ * "获取模型信息"装配：给 provider-settings 服务追加 models.dev 手动查询方法。
  *
  * 仅可在 Node 进程使用（依赖 node:fs 磁盘缓存）；浏览器 bundle 只应拿到
- * RPC 描述符与包装后的服务实例。
+ * RPC 描述符与包装后的服务实例。resolveModelConfig 保持纯规则引擎结果，
+ * models.dev 只在用户点击"获取模型信息"时按需查询。
  */
-export function createModelsDevEnrichedProviderSettingsService(
+export function createProviderSettingsWithModelsDevLookup(
   base: IProviderSettingsService,
 ): IProviderSettingsService {
   return {
     ...base,
-    resolveModelConfig: async (input: ResolveModelConfigInput): Promise<ModelConfigResolution> => {
-      const resolution = await base.resolveModelConfig(input);
-      // models.dev 命中条目覆盖占位基线（内建通配推荐）；查找或网络失败
-      // 都退回规则引擎结果，不阻塞编辑器。
-      try {
-        const overlay = await lookupModelsDevOverlay(input.modelId);
-        if (!overlay) return resolution;
-        return {
-          ...resolution,
-          inheritedConfig: mergeModelConfigData(resolution.inheritedConfig, overlay),
-          // 无个人草稿路径下 effectiveConfig 就是占位基线的完整视图，一并覆盖。
-          effectiveConfig:
-            "personalConfig" in input
-              ? resolution.effectiveConfig
-              : mergeModelConfigData(resolution.effectiveConfig, overlay),
-        };
-      } catch {
-        return resolution;
-      }
+    lookupModelInfo: async (modelId: ModelId): Promise<ModelInfoLookupResult> => {
+      const info = await lookupModelsDevModelInfo(modelId);
+      return {
+        found: info.found,
+        ...(info.providerId !== undefined ? { providerId: info.providerId } : {}),
+        config: info.config as ModelInfoLookupResult["config"],
+      };
     },
   };
 }

@@ -522,6 +522,9 @@ export function ProviderModelsSection({
                         personalConfig: structuredClone(personalConfig),
                       })
                     }
+                    onLookupModelInfo={(modelId) =>
+                      providerSettingsService.lookupModelInfo(modelId)
+                    }
                     settingsRevision={settingsRevision}
                     onDelete={!model.builtin ? () => onDeleteModel(model.modelId) : undefined}
                     onEnabledChange={(enabled) => {
@@ -568,10 +571,10 @@ export function ProviderModelsSection({
           overrideFields={editor.overrides}
           onOpenChange={handleAddDialogOpenChange}
           onDraftChange={updateAddDraft}
+          onLookupModelInfo={(modelId) => providerSettingsService.lookupModelInfo(modelId)}
           onCommit={commitAddDraft}
           saving={addSaving}
           modelConfigResolutionPending={editor.pending}
-          modelDefaultsLoaded={editor.defaultsLoaded}
           onModelIdBlur={() => {
             void editor.flush().catch(() => undefined);
           }}

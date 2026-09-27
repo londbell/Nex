@@ -10,7 +10,7 @@ import {
   PERSONAL_PROVIDER_CONFIG_FILE_NAME,
 } from "@nex/provider-node";
 import { getAppConfigDir as resolveAppConfigDir } from "./paths.js";
-import { createModelsDevEnrichedProviderSettingsService } from "./model-provider/modelsDevEnrichment.js";
+import { createProviderSettingsWithModelsDevLookup } from "./model-provider/modelsDevEnrichment.js";
 import {
   buildLocalMediaPreviewUrl,
   isProviderProvisioningAccountCredentialKey,
@@ -2593,7 +2593,7 @@ export function createLocalServices(options: {
   providerProvisioningSources.set(services, providerProvisioningSource);
   providerProvisioningTriggerDisposers.set(services, providerProvisioningDisposers);
   services
-    .register(IProviderSettingsService, createModelsDevEnrichedProviderSettingsService(providerRuntime.providerSettings))
+    .register(IProviderSettingsService, createProviderSettingsWithModelsDevLookup(providerRuntime.providerSettings))
     .register(IModelSelectionService, providerRuntime.modelSelection);
   if (isDesktopAttachedRemote || options.providerProvisioningTargetEnabled === true) {
     services.register(
