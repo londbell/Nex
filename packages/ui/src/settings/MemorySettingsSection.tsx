@@ -47,13 +47,11 @@ export function MemorySettingsSection({
   memoryEnabled,
   memoryService,
   onMemoryEnabledChange,
-  projectMemoryViewerAvailable,
   workspaceDisplayNames = [],
 }: {
   memoryEnabled: boolean;
   memoryService: MemoryCatalogService;
   onMemoryEnabledChange: (enabled: boolean) => Promise<void>;
-  projectMemoryViewerAvailable: boolean;
   workspaceDisplayNames?: readonly string[];
 }) {
   const { intl } = useZCodeIntl();
@@ -89,7 +87,8 @@ export function MemorySettingsSection({
   }, [memoryService]);
 
   useEffect(() => {
-    if (memoryEnabled && projectMemoryViewerAvailable) {
+    // 二次开发：记忆详情不再限定桌面端，Web 端同样通过本地 Host RPC 查看。
+    if (memoryEnabled) {
       void refreshCatalog();
       return;
     }
@@ -99,7 +98,7 @@ export function MemorySettingsSection({
     setCatalogError(null);
     setWorkspaces([]);
     setSelectedWorkspaceId(null);
-  }, [memoryEnabled, projectMemoryViewerAvailable, refreshCatalog]);
+  }, [memoryEnabled, refreshCatalog]);
 
   const displayWorkspaces = useMemo(() => {
     const displayNameBySlug = buildWorkspaceDisplayNameMap(workspaceDisplayNames);
@@ -176,11 +175,7 @@ export function MemorySettingsSection({
         />
       </SettingsGroupCard>
 
-      {!projectMemoryViewerAvailable ? (
-        <div className="rounded-xl border border-dashed border-border bg-transparent px-4 py-8 text-center text-ui-base text-foreground-subtle">
-          {intl.formatMessage({ id: "settings.memory.viewer.localOnly" })}
-        </div>
-      ) : !memoryEnabled ? null : (
+      {!memoryEnabled ? null : (
         <MemorySettingsViewer
           catalogError={catalogError}
           catalogState={catalogState}
