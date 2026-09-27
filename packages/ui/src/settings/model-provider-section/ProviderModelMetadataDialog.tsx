@@ -111,6 +111,9 @@ export function ProviderModelMetadataDialog({
         ...(result.config.optionSpecs?.reasoningLevel?.map != null
           ? { reasoningLevelMapValue: result.config.optionSpecs.reasoningLevel.map }
           : {}),
+        ...(result.config.optionSpecs?.reasoningLevel?.values != null
+          ? { reasoningLevelValuesValue: [...result.config.optionSpecs.reasoningLevel.values] }
+          : {}),
         ...(inputFormat
           ? {
               inputFormatValue: {

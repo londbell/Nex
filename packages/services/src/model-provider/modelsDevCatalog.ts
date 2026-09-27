@@ -38,6 +38,11 @@ interface ModelsDevLimit {
   readonly output?: number;
 }
 
+interface ModelsDevReasoningOption {
+  readonly type?: string;
+  readonly values?: readonly string[];
+}
+
 interface ModelsDevModel {
   readonly id?: string;
   readonly name?: string;
@@ -45,6 +50,8 @@ interface ModelsDevModel {
   readonly limit?: ModelsDevLimit;
   readonly tool_call?: boolean;
   readonly structured_output?: boolean;
+  readonly reasoning?: boolean;
+  readonly reasoning_options?: readonly ModelsDevReasoningOption[];
 }
 
 interface ModelsDevProvider {
@@ -176,7 +183,9 @@ const INPUT_MODALITY_KEYS = {
 } as const satisfies Record<string, keyof ModelInputFormatData>;
 
 /** 众数聚合；平票时数值取最大（更接近官方值），布尔取 true 优先。 */
-function majorityValue<T extends number | boolean>(values: readonly T[]): T | undefined {
+function majorityValue<T extends number | boolean | string>(
+  values: readonly T[],
+): T | undefined {
   if (values.length === 0) return undefined;
   const counts = new Map<string, { value: T; count: number }>();
   for (const value of values) {
@@ -207,6 +216,16 @@ export function modelConfigOverlayFromMatches(matches: readonly ModelsDevMatch[]
   const structured = matches
     .map((m) => m.model.structured_output)
     .filter((v): v is boolean => typeof v === "boolean");
+  // 推理等级：取 effort 类型 options 的 values 众数（跨供应商一致即官方档位）。
+  const reasoningValues = majorityValue<string>(
+    matches
+      .map((m) =>
+        JSON.stringify(
+          (m.model.reasoning_options ?? []).find((o) => o.type === "effort")?.values ?? null,
+        ),
+      )
+      .filter((v) => v !== "null"),
+  );
 
   const properties: Partial<ModelPropertiesData> = {};
   const contextWindow = majorityValue(contexts);
@@ -234,8 +253,17 @@ export function modelConfigOverlayFromMatches(matches: readonly ModelsDevMatch[]
   const propertiesResult =
     Object.keys(properties).length > 0 ? (properties as ModelPropertiesData) : undefined;
   const maxOutputTokens = majorityValue(outputs);
+  const reasoningLevel =
+    reasoningValues !== undefined
+      ? { values: JSON.parse(reasoningValues) as string[] }
+      : undefined;
   const optionSpecs =
-    maxOutputTokens !== undefined ? { maxOutputTokens: { max: maxOutputTokens } } : undefined;
+    maxOutputTokens !== undefined || reasoningLevel !== undefined
+      ? {
+          ...(maxOutputTokens !== undefined ? { maxOutputTokens: { max: maxOutputTokens } } : {}),
+          ...(reasoningLevel !== undefined ? { reasoningLevel } : {}),
+        }
+      : undefined;
   if (!propertiesResult && !optionSpecs) return {};
   return {
     ...(propertiesResult ? { properties: propertiesResult } : {}),
