@@ -45,7 +45,7 @@ export function useRootPlatformEffects({
   totalUnreadTaskCount,
   hasCompletedFullTabRestore = true,
   intl,
-  isRestoringOAuthSession,
+  providerStartupSyncPending,
 }: {
   initialWorkspaceAbsPath?: string;
   initialWorkspaceIdentity?: string;
@@ -78,7 +78,7 @@ export function useRootPlatformEffects({
   totalUnreadTaskCount: number;
   hasCompletedFullTabRestore?: boolean;
   intl: ReturnType<typeof import("@/i18n/IntlProvider.js").useNexIntl>["intl"];
-  isRestoringOAuthSession: boolean;
+  providerStartupSyncPending: boolean;
 }) {
   const didBootstrapInitialWorkspaceRef = useRef(false);
   const baseServices = useOptionalBaseWorkspaceServices();
@@ -288,12 +288,10 @@ export function useRootPlatformEffects({
     if (!pending || !baseServices || activeShareImportRef.current || importOperationRef.current) {
       return;
     }
-    if (isRestoringOAuthSession) {
+    if (providerStartupSyncPending) {
       return;
     }
 
-    // 分享页 Deep Link 不应在 Root 层按登录态分叉；未登录与已登录都
-    // 走同一份 continuation/import 流程。公开可导入分享由接口自身决定是否可用。
     pending.status = "importing";
     pendingShareImportRef.current = null;
     activeShareImportRef.current = pending;
@@ -485,7 +483,7 @@ export function useRootPlatformEffects({
     addTab,
     baseServices,
     intl,
-    isRestoringOAuthSession,
+    providerStartupSyncPending,
     locale,
     shareImportRevision,
   ]);

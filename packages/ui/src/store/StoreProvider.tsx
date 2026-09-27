@@ -20,19 +20,15 @@ const StoreContext = createContext<NexStore | null>(null);
 
 export function StoreProvider({
   broadcastService,
-  initialIsRestoringOAuthSession = false,
   children,
 }: {
   broadcastService: IBroadcastService;
-  initialIsRestoringOAuthSession?: boolean;
   children: ReactNode;
 }) {
   // 只在首次渲染时创建 store，避免 HMR 重复订阅
   const storeRef = useRef<NexStore | null>(null);
   if (!storeRef.current) {
-    storeRef.current = createNexStore(broadcastService, {
-      initialIsRestoringOAuthSession,
-    });
+    storeRef.current = createNexStore(broadcastService);
   }
 
   return <StoreContext.Provider value={storeRef.current}>{children}</StoreContext.Provider>;
@@ -63,10 +59,7 @@ export function useNexStore<T>(selector: (state: NexState) => T): T {
  *
  * 注意：selector 返回值与 defaultValue 都必须引用稳定，否则会造成无限重渲染。
  */
-export function useNexStoreWithDefault<T>(
-  selector: (state: NexState) => T,
-  defaultValue: T,
-): T {
+export function useNexStoreWithDefault<T>(selector: (state: NexState) => T, defaultValue: T): T {
   const store = useContext(StoreContext);
   const subscribe = useCallback(
     (onStoreChange: () => void) => (store ? store.subscribe(onStoreChange) : () => {}),

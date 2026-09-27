@@ -15,11 +15,11 @@ import {
   NEX_VERSION,
   buildNexToolEnvPassthroughEnv,
   resolveRuntimeNexEndpointOrigin,
-  readProductEndpointEnv,
-  pickProductEndpointEnv,
   resolveZaiBusinessBaseUrl,
   resolveZaiOAuthClientId,
   resolveZaiOAuthOrigin,
+  readProductEndpointEnv,
+  pickProductEndpointEnv,
   normalizeDynamicWorkflowMode,
   readNexAgentTelemetryEnv,
   sanitizeNexRuntimeEnv,
@@ -164,7 +164,6 @@ export function loadHostProcessEnvFromLocalFiles(): Record<string, string> {
     ...(workspaceRoot
       ? [resolve(workspaceRoot, ".env"), resolve(workspaceRoot, ".env.local")]
       : []),
-    // 开发态 host process 不经过 Vite，自行加载相同的 .env 文件以保持 OAuth 配置一致。
     ...(workspaceRoot && isLocalDevelopmentRuntime
       ? [
           resolve(workspaceRoot, ".env.development"),

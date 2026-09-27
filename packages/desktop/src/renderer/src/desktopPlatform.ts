@@ -53,8 +53,6 @@ export function createDesktopPlatform(options: {
     startCuaHelperPermissionDrag: window.nex.startCuaHelperPermissionDrag
       ? () => window.nex.startCuaHelperPermissionDrag?.()
       : undefined,
-    registerOAuthState: (payload) => window.nex.registerOAuthState(payload),
-    onOAuthCallback: (callback) => window.nex.onOAuthCallback(callback),
     onPaymentCallback: (callback) => window.nex.onPaymentCallback(callback),
     onShareImport: (callback) => window.nex.onShareImport?.(callback) ?? (() => {}),
     notifyRendererReady: () => window.nex.notifyRendererReady(),
@@ -120,8 +118,7 @@ export function createDesktopPlatform(options: {
       window.nex.onDesktopZoomLevelChanged?.(handler) ?? (() => {}),
     onTaskNotificationClick: (handler) => window.nex.onTaskNotificationClick(handler),
     exportLogs: () => window.nex.exportLogs(),
-    captureWindowScreenshot: () =>
-      window.nex.captureWindowScreenshot?.() ?? Promise.resolve(null),
+    captureWindowScreenshot: () => window.nex.captureWindowScreenshot?.() ?? Promise.resolve(null),
     onUpdateReady: (callback) => window.nex.onUpdateReady(callback),
     onUpdateCheckResult: (callback) => window.nex.onUpdateCheckResult(callback),
     onUpdateStateChanged: (callback) => window.nex.onUpdateStateChanged?.(callback) ?? (() => {}),
@@ -136,8 +133,7 @@ export function createDesktopPlatform(options: {
     setAutoDownloadAndInstallUpdates: (enabled) =>
       window.nex.setAutoDownloadAndInstallUpdates?.(enabled) ?? Promise.resolve(),
     getDesktopSessionActivity: () =>
-      window.nex.getDesktopSessionActivity?.() ??
-      Promise.resolve({ runningAgentSessionCount: 0 }),
+      window.nex.getDesktopSessionActivity?.() ?? Promise.resolve({ runningAgentSessionCount: 0 }),
     getNexStdioTapDevState: () =>
       window.nex.getNexStdioTapDevState?.() ??
       Promise.resolve({ enabled: false, visible: false, logDir: "", statePath: "" }),
@@ -160,7 +156,6 @@ export function createDesktopPlatform(options: {
       window.nex.getSystemLocale?.() ??
       Promise.resolve(navigator.language.toLowerCase().startsWith("zh") ? "zh-CN" : "en-US"),
     setTitleBarTheme: (theme) => window.nex.setTitleBarTheme(theme),
-    getDeviceId: () =>
-      (window as Window & { __NEX_DEVICE_ID__?: string }).__NEX_DEVICE_ID__ ?? "",
+    getDeviceId: () => (window as Window & { __NEX_DEVICE_ID__?: string }).__NEX_DEVICE_ID__ ?? "",
   };
 }

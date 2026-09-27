@@ -5,7 +5,6 @@ import type {
   EditorInfo,
   GitRepositorySummary,
   RemoteTarget,
-  UserInfo,
 } from "@nex/shared";
 import { useState } from "react";
 import { TID_WORKSPACE_HEADER } from "@nex/shared";
@@ -33,7 +32,6 @@ export function WorkspaceHeader({
   activeTaskChangeSummary,
   hasUpdateReady,
   activeTaskId,
-  user,
   activeTraceId,
   activeSessionId,
   activeTaskProvider,
@@ -76,7 +74,6 @@ export function WorkspaceHeader({
   activeTaskChangeSummary?: NexTaskChangeSummary | null;
   hasUpdateReady: boolean;
   activeTaskId: string | null;
-  user?: UserInfo | null;
   activeTraceId: string | null;
   activeSessionId: string | null;
   activeTaskProvider: NexProvider | null;
@@ -199,8 +196,6 @@ export function WorkspaceHeader({
         )}
         <WorkspaceHeaderActionSection
           variant={variant}
-          activeTaskId={activeTaskId}
-          user={user}
           readOnlyReason={readOnlyReason}
           workspaceAbsPath={workspaceAbsPath}
           workspaceIdentity={workspaceIdentity}

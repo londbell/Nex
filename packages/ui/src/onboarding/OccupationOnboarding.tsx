@@ -4,7 +4,6 @@ import { OccupationOnboardingVisual } from "@/onboarding/OccupationOnboardingVis
 import { occupations, type OccupationValue } from "@/onboarding/occupationOptions.js";
 import { OnboardingModeSelector } from "@/onboarding/OnboardingModeSelector.js";
 import { OnboardingOccupationGrid } from "@/onboarding/OnboardingOccupationGrid.js";
-import { useOnboardingTrigger } from "@/onboarding/useOnboardingTrigger.js";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useSettings } from "@/hooks/useSettingService.js";
 import { useOnboardingRecordService } from "@/hooks/useOnboardingRecordService.js";
@@ -20,7 +19,7 @@ import { logger } from "@/logger.js";
 import { DesktopWindowControls } from "@/DesktopWindowControls.js";
 import type { OnboardingRecordEntry } from "@nex/shared";
 
-/** 追加本地引导记录（userId 由 host 补全）；channel 缺失挂起时 5 秒超时按写失败处理。 */
+/** 追加本地引导记录；channel 缺失挂起时 5 秒超时按写失败处理。 */
 async function appendOnboardingRecord(
   service: NonNullable<ReturnType<typeof useOnboardingRecordService>>,
   deviceMid: string,
@@ -53,8 +52,6 @@ export function OccupationOnboarding({
   const shortcutBindings = useEffectiveShortcutBindings();
   const requested = useNexStore((state) => state.newUserOnboardingOpen);
   const setRequested = useNexStore((state) => state.setNewUserOnboardingOpen);
-  // 登录态变化（useRootOAuthEffects 登录成功后 setUser）时按 userId 重新判定是否触发引导。
-  const userId = useNexStore((state) => state.user?.id) ?? null;
   const { intl } = useNexIntl();
   const t = (key: string) => intl.formatMessage({ id: `occupationOnboarding.${key}` });
   const [occupation, setOccupation] = useState<OccupationValue | null>("developer");
@@ -72,23 +69,11 @@ export function OccupationOnboarding({
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const [error, setError] = useState(false);
-  const loadDeviceMid = useCallback(() => platform.getDeviceId(), [platform]);
-  // 二次开发：Nex 新手引导（职业引导）随账号体系裁剪，不再自动触发；
-  // 保留组件作为窗口控制/布局 wrapper，仅响应显式 request（目前无入口）。
-  const [needsOnboarding, markOnboarded] = useOnboardingTrigger({
-    onboardingRecord,
-    userId,
-    hasStoredOccupation: true,
-    loadDeviceMid,
-    update,
-  });
+  // 引导不再自动触发，只响应 openOnboarding 快捷键的显式请求。
   const onboardingVisible = requested;
   const captureEnd = useOnboardingTelemetry({
     platform,
-    visible:
-      Boolean(settings) &&
-      onboardingVisible &&
-      (requested || needsOnboarding !== null || Boolean(settings?.onboardingOccupation)),
+    visible: Boolean(settings) && onboardingVisible,
     step,
     occupation,
     mode,
@@ -159,7 +144,7 @@ export function OccupationOnboarding({
     setInterfaceMode,
     mode,
   ]);
-  // 引导再次打开（换账号触发 / 快捷键手动打开）时，用该用户在 record 里的最近作答预填，
+  // 引导再次打开（快捷键手动打开）时，用该用户在 record 里的最近作答预填，
   // 而不是每次都从写死的默认选项开始；跳过页记 null 的字段落默认值。
   const [latestEntry, setLatestEntry] = useState<OnboardingRecordEntry | null>(null);
   // 预填异步后到时不得覆盖用户已经做出的选择。
@@ -178,7 +163,7 @@ export function OccupationOnboarding({
     return () => {
       cancelled = true;
     };
-  }, [onboardingRecord, userId]);
+  }, [onboardingRecord]);
   const markUserEdited = () => {
     userEditedRef.current = true;
   };
@@ -239,7 +224,7 @@ export function OccupationOnboarding({
       logger.info("[occupation-onboarding] 偏好保存完成", { interfaceMode: mode });
       if (onboardingRecord) {
         try {
-          // 追加本地引导记录（userId 由 host 按登录态补全），后续上传服务器。
+          // 追加本地引导记录，后续上传服务器。
           // appendRecord 走 RPC，channel 缺失时会挂起导致保存按钮永远转圈，加超时保护。
           // 跳过是显式答案：该页被跳过时记 null（occupation 在第 1 步跳过时已是 null，
           // mode 在第 2 步跳过时置 null，偏好页整体跳过时两个布尔记 null）。
@@ -250,9 +235,8 @@ export function OccupationOnboarding({
             proactiveSuggestionsEnabled: skip ? null : mode === "office" && suggestions,
             completedAt: new Date().toISOString(),
           });
-          markOnboarded();
         } catch (cause) {
-          // 偏好已保存成功，记录写失败只留 warn 日志，不打断用户；下次启动按记录会再次触发引导。
+          // 偏好已保存成功，记录写失败只留 warn 日志，不打断用户。
           logger.warn("[occupation-onboarding] 写入引导记录失败", { error: String(cause) });
         }
       }

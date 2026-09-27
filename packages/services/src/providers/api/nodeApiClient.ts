@@ -14,8 +14,6 @@ const log = createServiceLogger("node-api-client");
 
 interface NodeApiClientOptions {
   fetchImpl?: typeof fetch;
-  onNexJwtInvalid?: (input: string | URL, headers: Headers) => void;
-  isNexJwtRequest?: (input: string | URL, headers: Headers) => boolean | Promise<boolean>;
   resolveNexEndpointOrigin?: () => Promise<string> | string;
 }
 
@@ -69,20 +67,16 @@ function resolveRequestHeaders(
   }
 
   // Nex 后端请求以前只有部分业务路径手动补来源头。
-  // 统一在 ApiClient 出口按 endpoint origin 注入，避免 OAuth/config/billing/snapshot 等链路遗漏。
+  // 统一在 ApiClient 出口按 endpoint origin 注入，避免 config/snapshot 等链路遗漏。
   return withNexEndpointHeaders(headers, endpointOrigin);
 }
 
 export class NodeApiClient implements ApiClient {
   private readonly fetchImpl?: typeof fetch;
   private readonly resolveNexEndpointOrigin?: () => Promise<string> | string;
-  private readonly onNexJwtInvalid?: (input: string | URL, headers: Headers) => void;
-  private readonly isNexJwtRequest?: NodeApiClientOptions["isNexJwtRequest"];
 
   constructor(options: NodeApiClientOptions = {}) {
     this.fetchImpl = options.fetchImpl;
-    this.onNexJwtInvalid = options.onNexJwtInvalid;
-    this.isNexJwtRequest = options.isNexJwtRequest;
     this.resolveNexEndpointOrigin = options.resolveNexEndpointOrigin;
   }
 
@@ -126,21 +120,11 @@ export class NodeApiClient implements ApiClient {
           url,
         });
       }
-      const response = await fetchImpl(requestInput, {
+      return await fetchImpl(requestInput, {
         ...init,
         headers: requestHeaders,
         ...(signal ? { signal } : {}),
       });
-      if (response.status === 401) {
-        try {
-          if (await this.isNexJwtRequest?.(requestInput, new Headers(requestHeaders))) {
-            this.onNexJwtInvalid?.(requestInput, new Headers(requestHeaders));
-          }
-        } catch (error) {
-          log.warn("nex jwt invalid response observation failed", { error });
-        }
-      }
-      return response;
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;

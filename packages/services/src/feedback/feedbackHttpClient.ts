@@ -16,8 +16,6 @@ import type {
   FeedbackComment,
   FeedbackCommentAttachment,
   FeedbackDeviceInfo,
-  FeedbackListQuery,
-  FeedbackListResult,
   FeedbackTicketDetail,
   FeedbackTicketEvent,
   FeedbackTicketFramework,
@@ -456,22 +454,6 @@ export class FeedbackHttpClient {
     return mapCreatedTicket(ticket, input);
   }
 
-  async list(query: FeedbackListQuery = {}): Promise<FeedbackListResult> {
-    const result = await this.request<{ items?: FeedbackTicketSummaryResponse[] }>(
-      buildFeedbackListPath(query),
-    );
-    const mapped = (result.items ?? []).map((item) => mapTicketSummary(item));
-    const filtered = mapped.filter((item) => {
-      if (query.status && item.status !== query.status) return false;
-      if (query.type && item.type !== query.type) return false;
-      return true;
-    });
-    return {
-      items: filtered,
-      total: filtered.length,
-    };
-  }
-
   async get(id: string): Promise<FeedbackTicketDetail> {
     const ticket = await this.request<FeedbackTicketDetailResponse>(
       `/feedback/ticket/${encodeURIComponent(id)}`,
@@ -542,19 +524,6 @@ export class FeedbackHttpClient {
       created_at: new Date().toISOString(),
     };
   }
-}
-
-function buildFeedbackListPath(query: FeedbackListQuery): string {
-  const params = new URLSearchParams();
-  // 新反馈列表接口支持服务端 limit/offset；只在客户端 slice 会导致刷新列表总是拉全量。
-  if (query.limit !== undefined && query.limit >= 0) {
-    params.set("limit", String(query.limit));
-  }
-  if (query.offset !== undefined && query.offset >= 0) {
-    params.set("offset", String(query.offset));
-  }
-  const suffix = params.toString();
-  return suffix ? `/feedback/ticket?${suffix}` : "/feedback/ticket";
 }
 
 function unwrapFeedbackResponse<T>(value: unknown): T {

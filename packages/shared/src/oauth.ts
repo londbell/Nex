@@ -109,12 +109,6 @@ export type OAuthCallbackResult =
   | OAuthAttributionCallbackResult
   | OAuthDuplicateCallbackResult;
 
-/** Main 进程路由 deep link 时使用的 state 上报结构 */
-export interface OAuthStateRegistration {
-  state: string;
-  provider?: OAuthProviderId;
-}
-
 /** 归一化后的回调参数 */
 export interface OAuthCallbackParams {
   state: string;

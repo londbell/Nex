@@ -1,4 +1,3 @@
-import { CodingPlanEntryButton } from "@/settings/CodingPlanEntryButton.js";
 /**
  * ChatErrorBanner — 错误提示组件
  *
@@ -13,7 +12,7 @@ import {
   TID_CHAT_ERROR_BANNER,
   TID_CHAT_ERROR_HOOK_ICON,
 } from "@nex/shared";
-import { AnchorIcon, CopyIcon, InfoIcon, RocketIcon, SettingsIcon, X } from "lucide-react";
+import { AnchorIcon, CopyIcon, InfoIcon, SettingsIcon, X } from "lucide-react";
 import { useNexIntl } from "./i18n/IntlProvider.js";
 import type { IntlInstance } from "./i18n/IntlProvider.js";
 import { Button } from "./components/ui/button.js";
@@ -29,10 +28,7 @@ import { toast } from "./components/ui/toast.js";
 import { useFeedbackStore } from "@/feedback/feedbackStore.js";
 import { getProviderBusinessErrorMessageId } from "@/lib/providerBusinessError.js";
 import { buildErrorFeedbackDescription } from "@/lib/errorFeedbackDraft.js";
-import {
-  isSuspiciousEmptyModelResultMessage,
-  resolveOffPeakTicketExpiredBusinessCode,
-} from "@/lib/providerBusinessError.js";
+import { isSuspiciousEmptyModelResultMessage } from "@/lib/providerBusinessError.js";
 import type { NexUiError } from "@/lib/nexUiError.js";
 
 const HISTORICAL_MODEL_UNAVAILABLE_MESSAGES = [
@@ -76,9 +72,7 @@ export function resolveChatErrorBannerDisplayMessage(
     return intl.formatMessage({ id: "chat.error.noAvailableModel" });
   }
 
-  const providerBusinessCode =
-    resolveOffPeakTicketExpiredBusinessCode(error.code, error.message) ?? error.code;
-  const providerBusinessMessageId = getProviderBusinessErrorMessageId(providerBusinessCode);
+  const providerBusinessMessageId = getProviderBusinessErrorMessageId(error.code);
   if (providerBusinessMessageId) {
     return intl.formatMessage({ id: providerBusinessMessageId });
   }
@@ -110,7 +104,6 @@ export function ChatErrorBanner({
   retryDisabled,
   onDismiss,
   onOpenModelSettings,
-  onOpenUpgrade,
 }: {
   error: NexUiError;
   onRetry?: () => void;
@@ -118,7 +111,6 @@ export function ChatErrorBanner({
   retryDisabled?: boolean;
   onDismiss?: () => void;
   onOpenModelSettings?: () => void;
-  onOpenUpgrade?: () => void;
 }) {
   const { intl } = useNexIntl();
   const openFeedbackSubmit = useFeedbackStore((state) => state.openSubmit);
@@ -207,35 +199,17 @@ export function ChatErrorBanner({
         </div>
 
         {modelConfigMissing ? (
-          <>
-            <CodingPlanEntryButton
-              type="button"
-              variant="default"
-              size="sm"
-              onClick={onOpenUpgrade}
-              className={cn(
-                actionButtonClassName,
-                "button-gradient gap-1.5 text-white hover:bg-transparent hover:opacity-90 dark:bg-[#484A58] dark:hover:bg-[#484A58]",
-              )}
-              aria-label={intl.formatMessage({
-                id: "chat.quota.action.upgrade",
-              })}
-            >
-              <RocketIcon className="size-3.5" />
-              {intl.formatMessage({ id: "chat.quota.action.upgrade" })}
-            </CodingPlanEntryButton>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onOpenModelSettings}
-              className={cn(actionButtonClassName, "gap-1.5")}
-              aria-label={intl.formatMessage({ id: "chat.error.setModels" })}
-            >
-              <SettingsIcon className="size-3.5" />
-              {intl.formatMessage({ id: "chat.error.setModels" })}
-            </Button>
-          </>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onOpenModelSettings}
+            className={cn(actionButtonClassName, "gap-1.5")}
+            aria-label={intl.formatMessage({ id: "chat.error.setModels" })}
+          >
+            <SettingsIcon className="size-3.5" />
+            {intl.formatMessage({ id: "chat.error.setModels" })}
+          </Button>
         ) : null}
 
         {!modelConfigMissing && error.detail ? (

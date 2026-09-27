@@ -85,7 +85,6 @@ export function ProviderCardHeader({
   onNameCompositionStart,
   onStartEditName,
   onDelete,
-  actionsVisible = true,
   providerToggle,
 }: {
   providerName: string;
@@ -101,12 +100,11 @@ export function ProviderCardHeader({
   onNameCompositionStart?: () => void;
   onStartEditName: () => void;
   onDelete?: () => void;
-  actionsVisible?: boolean;
   providerToggle?: ReactNode;
 }) {
   const { intl } = useNexIntl();
   const renameRequestedRef = useRef(false);
-  const secondaryActionsVisible = actionsVisible && (nameEditable || Boolean(onDelete));
+  const secondaryActionsVisible = nameEditable || Boolean(onDelete);
 
   return (
     <div className="flex items-center justify-between gap-3" data-testid="model-provider-header">
