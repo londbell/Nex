@@ -10,6 +10,7 @@ import {
   PERSONAL_PROVIDER_CONFIG_FILE_NAME,
 } from "@nex/provider-node";
 import { getAppConfigDir as resolveAppConfigDir } from "./paths.js";
+import { createModelsDevEnrichedProviderSettingsService } from "./model-provider/modelsDevEnrichment.js";
 import {
   buildLocalMediaPreviewUrl,
   isProviderProvisioningAccountCredentialKey,
@@ -372,7 +373,6 @@ import { bindAccountProviderInvalidation } from "./model-provider/accountProvide
 import { AccountProviderApiClient } from "./model-provider/accountProviderApiClient.js";
 import { AccountProviderApiKeyResolver } from "./model-provider/accountProviderApiKeyResolver.js";
 import { createProviderConfigRuntime } from "./model-provider/providerConfigRuntime.js";
-import { fetchNexBuiltinRemoteRelease } from "./model-provider/nexBuiltinRemoteConfig.js";
 import {
   createProviderRuntimeFromConfigRuntime,
   type ProviderRuntime,
@@ -392,7 +392,6 @@ import {
 import { createProviderProvisioningTarget } from "./model-provider/providerProvisioningTarget.js";
 import { IProviderProvisioningTargetService } from "./model-provider/providerProvisioning.js";
 import { buildOffPeakModelSelectionView } from "./model-provider/offPeakModelSelectionView.js";
-import { resolveClientConfigPlatform } from "./runtime-tools/clientPlatform.js";
 import {
   createAccountRequestAuthService,
   type IAccountRequestAuthService,
@@ -1515,31 +1514,8 @@ export function createLocalServices(options: {
     }),
   );
   const providerConfigLog = createServiceLogger("provider-config");
-  const clientConfigPlatform = resolveClientConfigPlatform();
   const providerConfigRuntime = createProviderConfigRuntime({
     nexBuiltinFilePath: options.nexBuiltinProviderConfigFilePath,
-    nexBuiltinEnvironment: {
-      environmentConfigRoot: resolveAppConfigDir(),
-      platform: clientConfigPlatform,
-      appVersion: NEX_VERSION,
-      resolveEndpointOrigin: resolveCurrentNexEndpointOrigin,
-      onRefreshResult: (event) => {
-        if (event.result === "updated")
-          providerConfigLog.info(undefined, "Nex Built-in CDN 配置已更新", event);
-        else providerConfigLog.debug(undefined, "Nex Built-in 刷新检查", event);
-      },
-      fetchRelease: (endpointOrigin, signal) =>
-        fetchNexBuiltinRemoteRelease({
-          apiClient,
-          endpointOrigin,
-          signal,
-          appVersion: NEX_VERSION,
-          platform: clientConfigPlatform,
-        }),
-    },
-    onNexBuiltinRefreshError: (error) => {
-      providerConfigLog.warn(undefined, "Nex Built-in Config 远端刷新失败", { error });
-    },
     onPersonalConfigRecovery: (event) => {
       providerConfigLog.warn(
         undefined,
@@ -2239,8 +2215,7 @@ export function createLocalServices(options: {
           userId: telemetryProfile?.id,
         }),
         ...createNodeProviderRuntimePathEnv({
-          // Built-in Active 路径按当前 Endpoint 隔离，不能通过同步的固定路径
-          // getter 读取；Agent spawn 必须等待本轮 Endpoint Source 完成解析和物化。
+          // Built-in 已只读 bundled 配置；保留异步 getter 以兼容路径环境契约。
           nexBuiltinFilePath: await providerConfigRuntime.resolveNexBuiltinActiveFilePath(),
           personalFilePath: join(resolveAppConfigDir(), PERSONAL_PROVIDER_CONFIG_FILE_NAME),
         }),
@@ -2618,7 +2593,7 @@ export function createLocalServices(options: {
   providerProvisioningSources.set(services, providerProvisioningSource);
   providerProvisioningTriggerDisposers.set(services, providerProvisioningDisposers);
   services
-    .register(IProviderSettingsService, providerRuntime.providerSettings)
+    .register(IProviderSettingsService, createModelsDevEnrichedProviderSettingsService(providerRuntime.providerSettings))
     .register(IModelSelectionService, providerRuntime.modelSelection);
   if (isDesktopAttachedRemote || options.providerProvisioningTargetEnabled === true) {
     services.register(

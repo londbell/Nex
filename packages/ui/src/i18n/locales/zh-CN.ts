@@ -3123,7 +3123,6 @@ const zhCN: Record<string, string> = {
   "settings.modelProvider.enableAction": "启用",
   "settings.modelProvider.disableAction": "禁用",
   "settings.modelProvider.restoreDefaultAction": "恢复默认",
-  "settings.modelProvider.followRecommendedConfig": "智能配置",
   "settings.modelProvider.restoreConfig": "恢复",
   "settings.modelProvider.resetForm": "重置表单",
   "settings.modelProvider.fieldHelp": "{field}说明",
@@ -3143,9 +3142,7 @@ const zhCN: Record<string, string> = {
     "使用 CEL 表达式，将当前推理等级 `reasoningLevel` 映射为模型接口的请求字段。表达式返回的 JSON 对象会合并到实际发送的请求体中。",
   "settings.modelProvider.help.advanced":
     "**MFJS 工具 Schema**：启用 Moonshot Flavored JSON Schema（Moonshot 的 JSON Schema 格式）兼容处理，常用于 Moonshot 的 Kimi 模型接口。仅在模型接口要求该格式时开启。",
-  "settings.modelProvider.help.followRecommendedConfig":
-    "根据模型 ID、Base URL 和 API 格式，为您智能匹配推荐配置。Nex 会持续更新推荐配置，并自动同步给您。\n如果手动修改某项配置，该项将转为手动管理，不再跟随推荐更新；其他配置仍由智能配置管理。",
-  "settings.modelProvider.modelDefaultsLoaded": "已匹配到智能配置",
+  "settings.modelProvider.modelDefaultsLoaded": "已从 models.dev 填入模型信息",
   "settings.modelProvider.modelConfigIncomplete": "模型配置不完整",
   "settings.modelProvider.models": "模型列表",
   "settings.modelProvider.modelsEmpty": "当前没有配置模型，添加模型后可在聊天中使用。",

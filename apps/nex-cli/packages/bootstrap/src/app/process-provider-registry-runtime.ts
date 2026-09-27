@@ -7,18 +7,12 @@ import {
 } from "@nex/provider";
 import {
   isBuiltinModelProviderId,
-  resolveRuntimeNexEndpointOrigin,
-  NEX_VERSION,
 } from "@nex/shared";
-import { dirname, join } from "node:path";
+
 import {
   NodeModelSelectionConfigRepository,
   NodeProviderRegistryRuntime,
   resolveNodeProviderRuntimePaths,
-  downloadNexBuiltinRelease,
-  resolveNexBuiltinClientPlatform,
-  NEX_BUILTIN_PROVIDER_BUNDLED_CONFIG_FILE_ENV,
-  type NexBuiltinRefreshEvent,
 } from "@nex/provider-node";
 import {
   createSharedNexCredentialStore,
@@ -37,8 +31,6 @@ export interface ProcessProviderRegistryRuntimeOptions {
     readonly legacyCliUserConfigFilePath?: string;
     readonly onAccountInitializationError?: (error: unknown) => void;
     readonly request?: typeof fetch;
-    readonly onBuiltinRefreshError?: (error: unknown) => void;
-    readonly onBuiltinRefreshResult?: (event: NexBuiltinRefreshEvent) => void;
   };
 }
 
@@ -56,34 +48,9 @@ export async function startProcessProviderRegistryRuntime(
     ? (options.standalone.credentialStore ?? createSharedNexCredentialStore({ env: { ...env } }))
     : undefined;
   let standaloneAccount: AccountProviderService | undefined;
-  const bundledFile = options.standalone
-    ? env[NEX_BUILTIN_PROVIDER_BUNDLED_CONFIG_FILE_ENV]?.trim()
-    : undefined;
   const runtime = new NodeProviderRegistryRuntime({
-    ...paths,
-    ...(bundledFile
-      ? {
-          nexBuiltinFilePath: bundledFile,
-          nexBuiltinActiveFilePath: paths.nexBuiltinFilePath,
-          nexBuiltinRemote: {
-            controlFilePath: join(
-              dirname(paths.nexBuiltinFilePath),
-              "nex-builtin-refresh.json",
-            ),
-            resolveEndpointKey: () => resolveRuntimeNexEndpointOrigin(env),
-            fetchRelease: (endpointOrigin, signal) =>
-              downloadNexBuiltinRelease({
-                endpointOrigin,
-                signal,
-                appVersion: NEX_VERSION,
-                platform: resolveNexBuiltinClientPlatform(),
-                request: options.standalone?.request ?? globalThis.fetch,
-              }),
-            onRefreshResult: options.standalone?.onBuiltinRefreshResult,
-          },
-        }
-      : {}),
-    onNexBuiltinRefreshError: options.standalone?.onBuiltinRefreshError,
+    // Built-in 已只读 bundled 配置；远端刷新与运行时缓存随 zcode 控制面依赖移除。
+    nexBuiltinFilePath: paths.nexBuiltinFilePath,
     accountSource,
     ...(credentialStore
       ? {
@@ -122,17 +89,7 @@ export async function startProcessProviderRegistryRuntime(
         }
       : {}),
   });
-  const disposeRecovery = standaloneAccount
-    ? runtime.onDidCheckNexBuiltin(async () => {
-        const [config, account] = await Promise.all([
-          runtime.configService.read(),
-          standaloneAccount!.read(),
-        ]);
-        if (config.nexBuiltinRevision !== account.basedOnNexBuiltinRevision)
-          await standaloneAccount!.refresh("builtin-account-recovery");
-      })
-    : undefined;
-  // 复用 AccountService 的串行、过期结果丢弃机制，凭据变化与 Built-in 变化不能各自发布。
+  // 复用 AccountService 的串行、过期结果丢弃机制，凭据变化不能各自发布。
   const disposeCredentialSubscription = credentialStore?.onDidChange?.(async () => {
     await standaloneAccount!.refresh("standalone-credentials-changed");
     await runtime.registryService.refresh("standalone-credentials-barrier");
@@ -158,7 +115,6 @@ export async function startProcessProviderRegistryRuntime(
         },
         dispose() {
           disposeCredentialSubscription?.();
-          disposeRecovery?.();
           standaloneAccount?.dispose();
           modelSelectionConfigRepository.dispose();
           runtime.dispose();

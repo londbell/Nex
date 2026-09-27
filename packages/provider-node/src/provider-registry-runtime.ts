@@ -57,10 +57,6 @@ export class NodeProviderRegistryRuntime {
     return this.#configRuntime.personalRepository;
   }
 
-  onDidCheckNexBuiltin(listener: () => Promise<void>): () => void {
-    return this.#configRuntime.onDidCheckNexBuiltin(listener);
-  }
-
   dispose(): void {
     if (this.#disposed) return;
     this.#disposed = true;

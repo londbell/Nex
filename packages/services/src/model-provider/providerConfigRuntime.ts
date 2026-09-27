@@ -11,10 +11,6 @@ import { importLegacyPersonalProviderConfig } from "./legacyPersonalProviderConf
 
 export interface ProviderConfigRuntimeOptions {
   readonly nexBuiltinFilePath: string;
-  readonly nexBuiltinActiveFilePath?: string;
-  readonly nexBuiltinRemote?: NodeProviderConfigRuntimeOptions["nexBuiltinRemote"];
-  readonly nexBuiltinEnvironment?: NodeProviderConfigRuntimeOptions["nexBuiltinEnvironment"];
-  readonly onNexBuiltinRefreshError?: (error: unknown) => void;
   readonly onPersonalConfigRecovery?: (event: PersonalProviderConfigRecoveryEvent) => void;
   readonly onPersonalConfigPollingError?: (error: unknown) => void;
   readonly personalFilePath?: string;
@@ -34,10 +30,6 @@ export class ProviderConfigRuntime {
   constructor(options: ProviderConfigRuntimeOptions) {
     const runtimeOptions: NodeProviderConfigRuntimeOptions = {
       nexBuiltinFilePath: options.nexBuiltinFilePath,
-      nexBuiltinActiveFilePath: options.nexBuiltinActiveFilePath,
-      nexBuiltinRemote: options.nexBuiltinRemote,
-      nexBuiltinEnvironment: options.nexBuiltinEnvironment,
-      onNexBuiltinRefreshError: options.onNexBuiltinRefreshError,
       onPersonalConfigRecovery: options.onPersonalConfigRecovery,
       onPersonalConfigPollingError: options.onPersonalConfigPollingError,
       personalFilePath:
@@ -67,14 +59,6 @@ export class ProviderConfigRuntime {
 
   resolveNexBuiltinActiveFilePath(): Promise<string> {
     return this.#runtime.resolveNexBuiltinActiveFilePath();
-  }
-
-  refreshNexBuiltin(options?: { readonly force?: boolean }) {
-    return this.#runtime.refreshNexBuiltin(options);
-  }
-
-  onDidCheckNexBuiltin(listener: () => Promise<void>): () => void {
-    return this.#runtime.onDidCheckNexBuiltin(listener);
   }
 
   dispose(): void {

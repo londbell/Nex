@@ -26,7 +26,6 @@ import { isImeComposingKeyEvent } from "@/lib/imeComposition.js";
 import { TECHNICAL_INPUT_ATTRIBUTES } from "@/lib/technicalInputAttributes.js";
 import {
   ProviderModelMetadataDialogActions,
-  ModelSmartConfigSwitch,
   ModelConfigDraftFeedback,
   ModelConfigRestoreButton,
 } from "@/settings/model-provider-section/ProviderModelMetadataDialogActions.js";
@@ -160,11 +159,6 @@ export function ProviderModelMetadataDialog({
               id: "settings.modelProvider.editModelDescription",
             })}
           </DialogDescription>
-          <ModelSmartConfigSwitch
-            disabled={saving}
-            checked={smart}
-            onChange={(useRecommendedConfigValue) => onDraftChange({ useRecommendedConfigValue })}
-          />
         </DialogHeader>
         {/* 保存期间锁定正文交互，不改变原有滚动容器；页脚单独显示提交状态。 */}
         <div
