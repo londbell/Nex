@@ -212,10 +212,8 @@ export function OccupationOnboarding({
     // eslint-disable-line react-hooks/exhaustive-deps
   }, [latestEntry]);
   if (!settings) return showChildrenWhileLoading ? <>{children}</> : null;
-  // 判定进行中先不渲染，避免引导闪现后立即消失（判定为需引导）或先闪引导再进主界面。
-  // 只有疑似首跑（settings 里也没有职业）才等待记录判定；存量用户（已有
-  // onboardingOccupation）不等 RPC 直接进主界面，杜绝黑屏。
-  if (!requested && needsOnboarding === null && !settings.onboardingOccupation) return null;
+  // 修复：引导已不再自动触发（可见性只看显式 request），原先"首跑等待记录判定"的
+  // return null 会让没有职业记录的新用户在 RPC 返回前看到最长数秒的空白窗口。
   if (!onboardingVisible) return <>{children}</>;
   const save = async (skip = false) => {
     if (savingRef.current) return;

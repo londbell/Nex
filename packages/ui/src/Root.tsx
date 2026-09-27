@@ -366,9 +366,7 @@ function RootInner({
     }
     return activeTab.workspacePath;
   });
-  const totalUnreadTaskCount = useNexSessionStore((state) =>
-    countAllUnreadTasks(state.workspaces),
-  );
+  const totalUnreadTaskCount = useNexSessionStore((state) => countAllUnreadTasks(state.workspaces));
   const addTab = useTabStore((state) => state.addTab);
   const activateTabByPath = useTabStore((state) => state.activateTabByPath);
   const tabStoreApi = useTabStoreApi();
@@ -416,7 +414,9 @@ function RootInner({
       rootProviderAvailability.hydrated || rootModelSelectionRead.state.status === "error",
   });
   // 二次开发：启动时不再强制 provider 登录（模型设置的登录保留，按需从设置页发起）。
-  const canRestoreWorkspaceSession = !isResolvingStartupAuthState;
+  // 修复：移除登录门禁时连带删掉了 provider 启动同步等待；family-domain 迁移与模型选择
+  // 视图就绪前恢复 workspace 会让 ChatView 过早预热草稿，这部分等待必须保留。
+  const canRestoreWorkspaceSession = !isResolvingStartupAuthState && !providerStartupSyncPending;
 
   useEffect(() => {
     // 跨 workspace 任务列表需要一个稳定的“本地/root services”入口。
@@ -558,7 +558,7 @@ function RootInner({
     isDesktop,
     welcomeScreenOpen: Boolean(welcomeScreenOpenReason),
     isResolvingStartupAuthState,
-    isResolvingProviderStartupState: false,
+    isResolvingProviderStartupState: providerStartupSyncPending,
     isRestoring,
     isBootstrappingInitialWorkspace: isBootstrappingInitialWorkspace || isCreatingFallbackWorkspace,
   });
@@ -730,7 +730,7 @@ function RootInner({
     if (
       shouldBlockRootRender({
         isResolvingStartupAuthState,
-        isResolvingProviderStartupState: false,
+        isResolvingProviderStartupState: providerStartupSyncPending,
         isRestoring,
         isBootstrappingInitialWorkspace,
       }) ||
