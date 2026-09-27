@@ -9,8 +9,6 @@ import type {
   createModelAdapter,
   createNexApp,
   CreateModelAdapterOptions,
-  configureCodingPlanApiKey,
-  ConfigureCodingPlanApiKeyOptions,
   inspectNexSkill,
   inspectWorkspaceHookTrust,
   grantWorkspaceHookTrust,
@@ -18,10 +16,6 @@ import type {
   inspectNexCustomCommand,
   InspectNexCustomCommandOptions,
   InspectNexSkillOptions,
-  loginNexCli,
-  loginBigmodelCodingPlan,
-  LoginBigmodelCodingPlanOptions,
-  LoginNexCliOptions,
   listNexCustomCommands,
   ListNexCustomCommandsOptions,
   loadNexCustomCommand,
@@ -29,8 +23,6 @@ import type {
   listNexSkills,
   ListNexSessionsOptions,
   ListNexSkillsOptions,
-  logoutNexCli,
-  LogoutNexCliOptions,
   resolveLatestSession,
   ResolveLatestSessionOptions,
   RunNexProtocolAgentOptions,
@@ -74,13 +66,6 @@ export interface RunDependencies extends PluginsCommandOverrides {
   inspectCustomCommand?: (
     options: InspectNexCustomCommandOptions,
   ) => ReturnType<typeof inspectNexCustomCommand>;
-  loginNexCli?: (options?: LoginNexCliOptions) => ReturnType<typeof loginNexCli>;
-  loginBigmodelCodingPlan?: (
-    options?: LoginBigmodelCodingPlanOptions,
-  ) => ReturnType<typeof loginBigmodelCodingPlan>;
-  configureCodingPlanApiKey?: (
-    options: ConfigureCodingPlanApiKeyOptions,
-  ) => ReturnType<typeof configureCodingPlanApiKey>;
   loadDotenv?: (options?: LoadCliDotenvOptions) => DotenvLoadResult;
   prepareNexTelemetryEnv?: typeof prepareNexTelemetryEnv;
   projectConfigPath?: string;
@@ -102,7 +87,6 @@ export interface RunDependencies extends PluginsCommandOverrides {
     options: ResolveLatestSessionOptions,
   ) => ReturnType<typeof resolveLatestSession>;
   resolveWorkspaceGitBranch?: typeof resolveWorkspaceGitBranch;
-  logoutNexCli?: (options?: LogoutNexCliOptions) => ReturnType<typeof logoutNexCli>;
   runNexProtocolAgent?: (options?: RunNexProtocolAgentOptions) => Promise<void>;
   runTui?: typeof import("@nex/tui").runTui;
   skipUserConfig?: boolean;

@@ -34,7 +34,7 @@ import type {
 import { useTuiThemeSync } from "./app-theme-sync.js";
 import { useSessionEventApplier } from "./app-session-event-handler.js";
 import { useTuiWorkflowRuns } from "./app-workflow-controller.js";
-import { useTuiApplyResult } from "./app-result.js";
+import { readInitialModelSetupRequired, useTuiApplyResult } from "./app-result.js";
 import { useSubagents } from "./app-subagents.js";
 import type { TuiOptions } from "./types.js";
 
@@ -53,7 +53,7 @@ export function TuiApp({
 }: TuiAppProps): React.ReactElement {
   // Startup sentinels are diagnostics, not user-visible transcript messages.
   const initialResult = options.initialResult;
-  const initialLoginRequired = initialResult?.loginRequired ?? options.loginRequired ?? false;
+  const initialSetupRequired = readInitialModelSetupRequired(options);
   const initialLocale = options.locale ?? "en-US";
   const initialCopy = getNexCopy(initialLocale).tui;
   useTuiThemeSync(options);
@@ -74,10 +74,10 @@ export function TuiApp({
   const [lastEvent, setLastEvent] = useState("idle");
   const [lastError, setLastError] = useState<string | undefined>();
   const copy = useMemo(() => getNexCopy(locale), [locale]);
-  const [loginRequired, setLoginRequired] = useState(initialLoginRequired);
+  const [modelSetupRequired, setModelSetupRequired] = useState(initialSetupRequired);
   const [status, setStatus] = useState(
     initialResult?.selection?.prompt ??
-      (initialLoginRequired ? initialCopy.loginRequired.status : initialCopy.status.ready),
+      (initialSetupRequired ? initialCopy.modelSetupRequired.status : initialCopy.status.ready),
   );
   const [statusDetails, setStatusDetails] = useState<string[]>([]);
   const [traceId, setTraceId] = useState<string | undefined>();
@@ -168,7 +168,7 @@ export function TuiApp({
   );
 
   const applyResult = useTuiApplyResult({
-    fallback: { locale, loginRequired, mode, model },
+    fallback: { locale, modelSetupRequired, mode, model },
     modifiedFileToolCallIds: modifiedFileToolCallIdsRef.current,
     setActiveTurnId,
     setCacheStats,
@@ -177,7 +177,7 @@ export function TuiApp({
     setLastEvent,
     setLiveModelText,
     setLocale,
-    setLoginRequired,
+    setModelSetupRequired,
     setMessages,
     setMode,
     setModel,
@@ -382,7 +382,7 @@ export function TuiApp({
     inputCursorToEndVersion,
     lastError,
     lastEvent,
-    loginRequired,
+    modelSetupRequired,
     liveModelText,
     mode,
     model,

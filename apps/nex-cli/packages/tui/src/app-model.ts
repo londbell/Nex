@@ -7,13 +7,7 @@ import type {
   PermissionBrokerResult,
   TodoItem,
 } from "@nex/contracts";
-import type {
-  TuiClipboardImage,
-  TuiOptions,
-  TuiSelection,
-  TuiSelectionInput,
-  TuiSelectionPending,
-} from "./types.js";
+import type { TuiClipboardImage, TuiOptions, TuiSelection, TuiSelectionPending } from "./types.js";
 import type { ModifiedFileStat } from "./app-modified-files.js";
 export type { ModifiedFileStat } from "./app-modified-files.js";
 
@@ -145,15 +139,8 @@ export type ActiveSelectionPending = TuiSelectionPending & {
   itemId: string;
 };
 
-export type ActiveSelectionInput = TuiSelectionInput & {
-  command: string;
-  itemId: string;
-  value: string;
-};
-
 export type SelectionState = TuiSelection & {
   filter: string;
-  input?: ActiveSelectionInput;
   pending?: ActiveSelectionPending;
   selectedIndex: number;
 };

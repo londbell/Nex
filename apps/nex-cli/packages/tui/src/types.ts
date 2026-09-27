@@ -22,7 +22,13 @@ export type TuiContextUsage = Pick<SessionProjection, "contextUsed" | "contextWi
 
 export type TuiSessionMetadata = Pick<
   TuiSubmitPromptResult,
-  "locale" | "model" | "theme" | "thoughtLevel" | "modelOptions" | "effortOptions" | "loginRequired"
+  | "locale"
+  | "model"
+  | "theme"
+  | "thoughtLevel"
+  | "modelOptions"
+  | "effortOptions"
+  | "modelSetupRequired"
 >;
 
 export type TuiSwitchableMode = Extract<CollaborationMode, "plan" | "build" | "edit" | "yolo">;
@@ -85,25 +91,11 @@ export type TuiSelectionItem = {
   command: string;
   disabledReason?: string;
   id: string;
-  input?: TuiSelectionInput;
   keywords?: readonly string[];
   meta?: string;
   pending?: TuiSelectionPending;
   primary: string;
   secondary?: string;
-};
-
-export type TuiSelectionInput = {
-  cancelStatus?: string;
-  clearStatus?: string;
-  emptyStatus?: string;
-  help?: string;
-  mask?: boolean;
-  placeholder?: string;
-  primary: string;
-  secondary?: string;
-  status?: string;
-  submitStatus?: string;
 };
 
 export type TuiSelectionPending = {
@@ -150,7 +142,7 @@ export type TuiSubmitPromptResult = {
   effortOptions?: readonly TuiEffortOption[];
   modelOptions?: readonly TuiModelOption[];
   locale?: SupportedLocale;
-  loginRequired?: boolean;
+  modelSetupRequired?: boolean;
   mode?: CollaborationMode;
   model?: string;
   theme?: UiThemePreference;
@@ -302,7 +294,7 @@ export type TuiOptions = {
   initialModel?: string;
   initialResult?: TuiSubmitPromptResult;
   initialThoughtLevel?: string;
-  loginRequired?: boolean;
+  modelSetupRequired?: boolean;
   locale?: SupportedLocale;
   theme?: UiThemePreference;
   initialThemeMode?: UiThemeMode;
@@ -342,7 +334,7 @@ export type TuiStartupOptions = Pick<
   | "initialMode"
   | "initialModel"
   | "initialThoughtLevel"
-  | "loginRequired"
+  | "modelSetupRequired"
   | "locale"
   | "theme"
   | "modelOptions"

@@ -6,22 +6,6 @@ import { atomicWritePrivateTextFile, backupCorruptFile, withFileLock } from "@ne
 import { createNexCredentialCipher, type NexCredentialCipher } from "./credential-cipher.js";
 
 const NEX_DATA_BASE_DIR_ENV_KEY = "NEX_DATA_BASE_DIR";
-const ZAI_PROVIDER_ID = "zai";
-const credentialChangeListeners = new Map<
-  string,
-  Set<() => void | Promise<void>>
->();
-
-export const SHARED_NEX_CREDENTIAL_KEYS = {
-  activeProvider: "oauth:active_provider",
-  bigmodelAccessToken: "oauth:bigmodel:access_token",
-  bigmodelRefreshToken: "oauth:bigmodel:refresh_token",
-  bigmodelUserInfo: "oauth:bigmodel:user_info",
-  zaiAccessToken: "oauth:zai:access_token",
-  zaiRefreshToken: "oauth:zai:refresh_token",
-  zaiUserInfo: "oauth:zai:user_info",
-  nexJwtToken: "nexjwttoken",
-} as const;
 
 export interface SharedNexCredentialStoreOptions {
   baseDir?: string;
@@ -30,27 +14,10 @@ export interface SharedNexCredentialStoreOptions {
   filePath?: string;
 }
 
-export interface ZaiLoginCredentialUser {
-  avatar?: string;
-  email?: string;
-  name?: string;
-  user_id: string;
-}
-
-export interface ZaiLoginCredentialPayload {
-  accessToken: string;
-  jwtToken: string;
-  user: ZaiLoginCredentialUser;
-}
-
 export interface SharedNexCredentialStore {
   readonly filePath: string;
-  clearZaiLoginCredentials(): Promise<void>;
   delete(key: string): Promise<void>;
   deleteIfValue(key: string, expectedValue: string): Promise<boolean>;
-  deleteIfValues(
-    expectedValues: Readonly<Record<string, string>>,
-  ): Promise<Record<string, boolean>>;
   deleteManyIfValue(
     guardKey: string,
     expectedGuardValue: string,
@@ -58,11 +25,9 @@ export interface SharedNexCredentialStore {
   ): Promise<boolean>;
   load(key: string): Promise<string | null>;
   loadMany(keys: readonly string[]): Promise<Record<string, string | null>>;
-  onDidChange?(listener: () => void | Promise<void>): () => void;
   save(key: string, value: string): Promise<void>;
   saveMany(entries: Readonly<Record<string, string>>): Promise<void>;
   saveReplacing(key: string, value: string, replacedKeys: readonly string[]): Promise<void>;
-  saveZaiLoginCredentials(payload: ZaiLoginCredentialPayload): Promise<void>;
 }
 
 export function createSharedNexCredentialStore(
@@ -74,20 +39,6 @@ export function createSharedNexCredentialStore(
 
   return {
     filePath,
-
-    async clearZaiLoginCredentials(): Promise<void> {
-      await mutateRawCredentialRecord(filePath, async (rawCredentials) => {
-        const activeProviderRaw = rawCredentials[SHARED_NEX_CREDENTIAL_KEYS.activeProvider];
-        const activeProvider = activeProviderRaw ? cipher.decrypt(activeProviderRaw) : null;
-        delete rawCredentials[SHARED_NEX_CREDENTIAL_KEYS.zaiAccessToken];
-        delete rawCredentials[SHARED_NEX_CREDENTIAL_KEYS.zaiRefreshToken];
-        delete rawCredentials[SHARED_NEX_CREDENTIAL_KEYS.zaiUserInfo];
-        delete rawCredentials[SHARED_NEX_CREDENTIAL_KEYS.nexJwtToken];
-        if (activeProvider === ZAI_PROVIDER_ID) {
-          delete rawCredentials[SHARED_NEX_CREDENTIAL_KEYS.activeProvider];
-        }
-      });
-    },
 
     async delete(key: string): Promise<void> {
       const validatedKey = validateCredentialKey(key);
@@ -110,26 +61,6 @@ export function createSharedNexCredentialStore(
         }
         delete rawCredentials[validatedKey];
         deleted = true;
-      });
-      return deleted;
-    },
-
-    async deleteIfValues(
-      expectedValues: Readonly<Record<string, string>>,
-    ): Promise<Record<string, boolean>> {
-      const validatedEntries = Object.entries(expectedValues).map(
-        ([key, value]) => [validateCredentialKey(key), validateCredentialValue(value)] as const,
-      );
-      if (validatedEntries.length === 0) return {};
-      const deleted: Record<string, boolean> = {};
-      await mutateRawCredentialRecord(filePath, (rawCredentials) => {
-        for (const [key, expectedValue] of validatedEntries) {
-          const encryptedValue = rawCredentials[key];
-          const matches =
-            encryptedValue !== undefined && cipher.decrypt(encryptedValue) === expectedValue;
-          deleted[key] = matches;
-          if (matches) delete rawCredentials[key];
-        }
       });
       return deleted;
     },
@@ -184,19 +115,6 @@ export function createSharedNexCredentialStore(
       );
     },
 
-    onDidChange(listener: () => void | Promise<void>): () => void {
-      let listeners = credentialChangeListeners.get(filePath);
-      if (!listeners) {
-        listeners = new Set();
-        credentialChangeListeners.set(filePath, listeners);
-      }
-      listeners.add(listener);
-      return () => {
-        listeners?.delete(listener);
-        if (listeners?.size === 0) credentialChangeListeners.delete(filePath);
-      };
-    },
-
     async save(key: string, value: string): Promise<void> {
       const validatedKey = validateCredentialKey(key);
       const encryptedValue = cipher.encrypt(validateCredentialValue(value));
@@ -230,23 +148,6 @@ export function createSharedNexCredentialStore(
         for (const replacedKey of validatedReplacedKeys) {
           if (replacedKey !== validatedKey) delete rawCredentials[replacedKey];
         }
-      });
-    },
-
-    async saveZaiLoginCredentials(payload: ZaiLoginCredentialPayload): Promise<void> {
-      const encryptedCredentials = {
-        activeProvider: cipher.encrypt(ZAI_PROVIDER_ID),
-        accessToken: cipher.encrypt(validateCredentialValue(payload.accessToken)),
-        jwtToken: cipher.encrypt(validateCredentialValue(payload.jwtToken)),
-        userInfo: cipher.encrypt(JSON.stringify(payload.user)),
-      };
-      await mutateRawCredentialRecord(filePath, (rawCredentials) => {
-        rawCredentials[SHARED_NEX_CREDENTIAL_KEYS.activeProvider] =
-          encryptedCredentials.activeProvider;
-        rawCredentials[SHARED_NEX_CREDENTIAL_KEYS.zaiAccessToken] =
-          encryptedCredentials.accessToken;
-        rawCredentials[SHARED_NEX_CREDENTIAL_KEYS.nexJwtToken] = encryptedCredentials.jwtToken;
-        rawCredentials[SHARED_NEX_CREDENTIAL_KEYS.zaiUserInfo] = encryptedCredentials.userInfo;
       });
     },
   };
@@ -324,10 +225,6 @@ async function mutateRawCredentialRecord(
     await mutation(value);
     await atomicWritePrivateTextFile(filePath, `${JSON.stringify(value, null, 2)}\n`);
   });
-  const listeners = [...(credentialChangeListeners.get(filePath) ?? [])];
-  // 同进程的 Registry Source 需要在登录返回前观察到新凭据；单个监听者失败不应
-  // 把已经原子落盘的 Credential 伪装成写入失败。
-  await Promise.allSettled(listeners.map((listener) => listener()));
 }
 
 function parseCredentialRecord(value: unknown): Record<string, string> {

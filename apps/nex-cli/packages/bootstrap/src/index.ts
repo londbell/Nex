@@ -17,7 +17,6 @@ export type {
   NexAppOptions,
   NexModelOption,
 } from "./app/types.js";
-export * from "./auth-login.js";
 export {
   inspectNexCustomCommand,
   listNexCustomCommands,
@@ -73,11 +72,7 @@ export { prepareNexTelemetryEnv, shutdownNexTelemetry } from "./telemetry-bootst
 export type { SessionTranscriptMessage, SessionTranscriptPart } from "./session-transcript.js";
 export { listNexSessions, resolveLatestSession } from "./sessions.js";
 export { inspectNexSkill, listNexSkills } from "./skills.js";
-export type {
-  InspectNexSkillOptions,
-  ListNexSkillsOptions,
-  NexSkillInspection,
-} from "./skills.js";
+export type { InspectNexSkillOptions, ListNexSkillsOptions, NexSkillInspection } from "./skills.js";
 // Exposed for the CLI's headless slash routing: it must decide "is this a real
 // custom command?" with the *same* reserved-name gate the app facade's
 // customCommandPromptResolver applies, or the two disagree and a reserved name

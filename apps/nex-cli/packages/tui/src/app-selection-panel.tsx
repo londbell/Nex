@@ -2,11 +2,7 @@ import React from "react";
 import type { TuiCopy } from "@nex/i18n";
 import type { SelectionState } from "./app-model.js";
 import { palette } from "./app-model.js";
-import {
-  filterSelectionItems,
-  selectionInputDisplayValue,
-  visibleSelectionItemWindow,
-} from "./app-selection-keyboard.js";
+import { filterSelectionItems, visibleSelectionItemWindow } from "./app-selection-keyboard.js";
 import { DEFAULT_TUI_COPY } from "./app-locale.js";
 import { displayWidth, truncateDisplay } from "./app-terminal-width.js";
 
@@ -56,35 +52,10 @@ export function SelectionPanel({
       title: selection.title,
       style: panelStyle({ borderColor: palette.accent, height: CHOICE_PANEL_HEIGHT }),
     },
-    ...(selection.input
-      ? inputSelectionContent(selection.input, rowContentWidth)
-      : selection.pending
-        ? pendingSelectionContent(selection.pending)
-        : selectionContent(selection, copy, visibleWindow, rowContentWidth)),
+    ...(selection.pending
+      ? pendingSelectionContent(selection.pending)
+      : selectionContent(selection, copy, visibleWindow, rowContentWidth)),
   );
-}
-
-function inputSelectionContent(
-  input: NonNullable<SelectionState["input"]>,
-  rowContentWidth: number,
-): React.ReactNode[] {
-  const value = selectionInputDisplayValue(input);
-  const inputLine = `> ${value}`;
-  const inputColor = input.value ? palette.text : palette.muted;
-  return [
-    h("text", { key: "primary", style: { fg: palette.accent } }, input.primary),
-    input.secondary
-      ? h("text", { key: "secondary", style: { fg: palette.muted, wrapMode: "word" } }, input.secondary)
-      : null,
-    h(
-      "text",
-      { key: "input", style: { fg: inputColor } },
-      truncateDisplay(inputLine, rowContentWidth),
-    ),
-    input.help
-      ? h("text", { key: "help", style: { fg: palette.muted, wrapMode: "word" } }, input.help)
-      : null,
-  ].filter((child): child is React.ReactElement => Boolean(child));
 }
 
 function pendingSelectionContent(
@@ -93,7 +64,11 @@ function pendingSelectionContent(
   return [
     h("text", { key: "primary", style: { fg: palette.accent } }, pending.primary),
     pending.secondary
-      ? h("text", { key: "secondary", style: { fg: palette.muted, wrapMode: "word" } }, pending.secondary)
+      ? h(
+          "text",
+          { key: "secondary", style: { fg: palette.muted, wrapMode: "word" } },
+          pending.secondary,
+        )
       : null,
     pending.help
       ? h("text", { key: "help", style: { fg: palette.muted, wrapMode: "word" } }, pending.help)
@@ -204,10 +179,7 @@ function selectionHelperText(selection: SelectionState, copy: TuiCopy): string {
   });
 }
 
-function selectionRowDetail(
-  item: SelectionState["items"][number],
-  copy: TuiCopy,
-): string {
+function selectionRowDetail(item: SelectionState["items"][number], copy: TuiCopy): string {
   return [
     item.secondary,
     item.meta ? `(${item.meta})` : undefined,

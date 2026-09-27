@@ -4,29 +4,8 @@ import type { SelectionState, SubmitValueOptions } from "./app-model.js";
 import { matchesText } from "./state.js";
 import type { TuiSelectionItem } from "./types.js";
 
-const DEFAULT_INPUT_CANCEL_STATUS = "Input cancelled.";
-const DEFAULT_INPUT_EMPTY_STATUS = "Input is required.";
-const DEFAULT_INPUT_CLEAR_STATUS = "Input cleared.";
 const DEFAULT_PENDING_CANCEL_STATUS = "Selection cancelled.";
 const DEFAULT_FILTER_CLEAR_STATUS = "Selection filter cleared.";
-const INPUT_COMMAND_SEPARATOR = " ";
-const MASK_CHAR = "*";
-const MAX_MASK_WIDTH = 24;
-const CONTROL_KEY_NAMES = new Set([
-  "backspace",
-  "delete",
-  "down",
-  "end",
-  "escape",
-  "home",
-  "left",
-  "pagedown",
-  "pageup",
-  "return",
-  "right",
-  "tab",
-  "up",
-]);
 
 export function filterSelectionItems(selection: SelectionState): TuiSelectionItem[] {
   if (selection.filterable === false) return [...selection.items];
@@ -36,8 +15,6 @@ export function filterSelectionItems(selection: SelectionState): TuiSelectionIte
       item.secondary,
       item.meta,
       item.command,
-      item.input?.primary,
-      item.input?.secondary,
       ...(item.keywords ?? []),
     ]),
   );
@@ -70,10 +47,7 @@ export function visibleSelectionItemWindow(
   const clampedSelectedIndex = clampIndex(selectedIndex, items.length);
   const visibleCount = Math.min(maxVisible, items.length);
   const maxStartIndex = items.length - visibleCount;
-  const startIndex = Math.min(
-    Math.max(0, clampedSelectedIndex - visibleCount + 1),
-    maxStartIndex,
-  );
+  const startIndex = Math.min(Math.max(0, clampedSelectedIndex - visibleCount + 1), maxStartIndex);
 
   return {
     items: items.slice(startIndex, startIndex + visibleCount),
@@ -92,11 +66,6 @@ export function handleSelectionKey(
 ): void {
   if (selection.pending) {
     handlePendingSelectionKey(key, selection, setSelection, setStatus, cancelPendingSelection);
-    return;
-  }
-
-  if (selection.input) {
-    handleSelectionInputKey(key, selection, setSelection, setStatus, submitValue);
     return;
   }
 
@@ -159,14 +128,6 @@ export function printableKey(key: KeyEvent): string | undefined {
   return undefined;
 }
 
-export function selectionInputDisplayValue(input: NonNullable<SelectionState["input"]>): string {
-  if (!input.value) return input.placeholder ?? "";
-  if (!input.mask) return input.value;
-  const maskWidth = Math.min(input.value.length, MAX_MASK_WIDTH);
-  const suffix = input.value.length > MAX_MASK_WIDTH ? "..." : "";
-  return `${MASK_CHAR.repeat(maskWidth)}${suffix}`;
-}
-
 function handlePendingSelectionKey(
   key: KeyEvent,
   selection: SelectionState,
@@ -179,53 +140,6 @@ function handlePendingSelectionKey(
   const cancelStatus = selection.pending?.cancelStatus ?? DEFAULT_PENDING_CANCEL_STATUS;
   setSelection((current) => (current ? { ...current, pending: undefined } : current));
   setStatus(cancelStatus);
-}
-
-function handleSelectionInputKey(
-  key: KeyEvent,
-  selection: SelectionState,
-  setSelection: React.Dispatch<React.SetStateAction<SelectionState | undefined>>,
-  setStatus: (status: string) => void,
-  submitValue: (value: string, options?: SubmitValueOptions) => Promise<void>,
-): void {
-  const input = selection.input;
-  if (!input) return;
-
-  if (key.name === "escape") {
-    setSelection((current) => (current ? { ...current, input: undefined } : current));
-    setStatus(input.cancelStatus ?? DEFAULT_INPUT_CANCEL_STATUS);
-    return;
-  }
-  if (key.name === "return") {
-    const value = input.value.trim();
-    if (!value) {
-      setStatus(input.emptyStatus ?? DEFAULT_INPUT_EMPTY_STATUS);
-      return;
-    }
-    setSelection(undefined);
-    setStatus(input.submitStatus ?? `Selected ${input.primary}.`);
-    void submitValue(`${input.command}${INPUT_COMMAND_SEPARATOR}${value}`);
-    return;
-  }
-  if (key.name === "backspace") {
-    setSelection((current) =>
-      current
-        ? { ...current, input: { ...input, value: removeLastCharacter(input.value) } }
-        : current,
-    );
-    return;
-  }
-  if (key.name === "u" && key.ctrl) {
-    setSelection((current) => (current ? { ...current, input: { ...input, value: "" } } : current));
-    setStatus(input.clearStatus ?? DEFAULT_INPUT_CLEAR_STATUS);
-    return;
-  }
-
-  const text = printableInputText(key);
-  if (!text) return;
-  setSelection((current) =>
-    current ? { ...current, input: { ...input, value: `${input.value}${text}` } } : current,
-  );
 }
 
 function submitSelectedItem(
@@ -242,28 +156,6 @@ function submitSelectedItem(
   }
   if (item.disabledReason) {
     setStatus(item.disabledReason);
-    return;
-  }
-  const itemInput = item.input;
-  if (itemInput) {
-    const selectedIndex = clampIndex(selection.selectedIndex, visible.length);
-    setSelection((current) =>
-      current
-        ? {
-            ...current,
-            filter: "",
-            input: {
-              ...itemInput,
-              command: item.command,
-              itemId: item.id,
-              primary: itemInput.primary,
-              value: "",
-            },
-            selectedIndex,
-          }
-        : current,
-    );
-    setStatus(itemInput.status ?? `Enter ${item.primary}.`);
     return;
   }
   const pending = item.pending;
@@ -293,20 +185,4 @@ function submitSelectedItem(
   setSelection(undefined);
   setStatus(`Selected ${item.primary}.`);
   void submitValue(item.command);
-}
-
-function printableInputText(key: KeyEvent): string | undefined {
-  const character = printableKey(key);
-  if (character) return character;
-  if (key.ctrl || key.meta || CONTROL_KEY_NAMES.has(key.name)) return undefined;
-  if (key.sequence.length === 0) return undefined;
-  return [...key.sequence].every((char) => char >= " " && char !== "\x7f")
-    ? key.sequence
-    : undefined;
-}
-
-function removeLastCharacter(value: string): string {
-  const characters = Array.from(value);
-  characters.pop();
-  return characters.join("");
 }
