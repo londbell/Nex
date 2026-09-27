@@ -5,19 +5,13 @@ import {
   type AccountProviderConfigSnapshot,
   type AccountProviderStates,
 } from "@nex/provider";
-import {
-  isBuiltinModelProviderId,
-} from "@nex/shared";
-
+import { isBuiltinModelProviderId } from "@nex/shared";
 import {
   NodeModelSelectionConfigRepository,
   NodeProviderRegistryRuntime,
   resolveNodeProviderRuntimePaths,
 } from "@nex/provider-node";
-import {
-  createSharedNexCredentialStore,
-  type SharedNexCredentialStore,
-} from "@nex/adapters/auth";
+import { createSharedNexCredentialStore, type SharedNexCredentialStore } from "@nex/adapters/auth";
 import { readLegacyCliPersonalProviderConfig } from "./legacy-cli-personal-provider-config-importer.js";
 import {
   createStandaloneProviderRuntimeHeadersPort,
@@ -30,7 +24,6 @@ export interface ProcessProviderRegistryRuntimeOptions {
     readonly credentialStore?: SharedNexCredentialStore;
     readonly legacyCliUserConfigFilePath?: string;
     readonly onAccountInitializationError?: (error: unknown) => void;
-    readonly request?: typeof fetch;
   };
 }
 
@@ -49,8 +42,9 @@ export async function startProcessProviderRegistryRuntime(
     : undefined;
   let standaloneAccount: AccountProviderService | undefined;
   const runtime = new NodeProviderRegistryRuntime({
-    // Built-in 已只读 bundled 配置；远端刷新与运行时缓存随 zcode 控制面依赖移除。
-    nexBuiltinFilePath: paths.nexBuiltinFilePath,
+    // 修复：移除 Built-in 远端刷新时误删了 `...paths` 展开，导致 personalFilePath 丢失。
+    // Built-in 现在只读 bundled 配置，这里只需要两条路径。
+    ...paths,
     accountSource,
     ...(credentialStore
       ? {
@@ -139,7 +133,6 @@ export async function startProcessProviderRegistryRuntime(
     }
   } catch (error) {
     disposeCredentialSubscription?.();
-    disposeRecovery?.();
     standaloneAccount?.dispose();
     runtime.dispose();
     throw error;
