@@ -18,6 +18,7 @@ import {
   WorkflowGraphRecordSchema,
   WorkflowRunSnapshotSchema,
 } from "@nex/contracts";
+import { migrateLegacyNexHome } from "../storage/legacy-home-migration.js";
 
 export interface NodeWorkflowStoreOptions {
   rootDir?: string;
@@ -32,16 +33,23 @@ interface WorkflowIndexFile {
   runs: WorkflowRunListItem[];
 }
 
-import { migrateLegacyNexHome } from "../storage/legacy-home-migration.js";
-migrateLegacyNexHome();
 const DEFAULT_WORKFLOW_ROOT = join(homedir(), ".nex", "cli", "workflows");
+
+/**
+ * 修复：迁移原先在模块导入时执行，任何导入 adapters 的测试都会改名开发者真实的 ~/.zcode；
+ * 改为仅在实际解析默认 ~/.nex 根目录时触发。
+ */
+function defaultWorkflowRoot(): string {
+  migrateLegacyNexHome();
+  return DEFAULT_WORKFLOW_ROOT;
+}
 const WORKFLOW_DEFINITION_FILE_EXTENSION = ".json";
 
 export class NodeWorkflowStore implements WorkflowStorePort {
   private readonly rootDir: string;
 
   constructor(options: NodeWorkflowStoreOptions = {}) {
-    this.rootDir = options.rootDir ?? DEFAULT_WORKFLOW_ROOT;
+    this.rootDir = options.rootDir ?? defaultWorkflowRoot();
   }
 
   async appendEvent(event: WorkflowEvent, options?: { signal?: AbortSignal }): Promise<void> {
@@ -187,7 +195,7 @@ export class NodeWorkflowDefinitionStore implements WorkflowDefinitionStorePort 
 
   constructor(options: NodeWorkflowDefinitionStoreOptions = {}) {
     this.definitionsDir =
-      options.definitionsDir ?? join(options.rootDir ?? DEFAULT_WORKFLOW_ROOT, "definitions");
+      options.definitionsDir ?? join(options.rootDir ?? defaultWorkflowRoot(), "definitions");
   }
 
   async listDefinitions(options?: { signal?: AbortSignal }): Promise<WorkflowDefinition[]> {
@@ -241,11 +249,11 @@ export function createNodeWorkflowDefinitionStore(
 }
 
 export function getDefaultWorkflowRoot(): string {
-  return DEFAULT_WORKFLOW_ROOT;
+  return defaultWorkflowRoot();
 }
 
 export function getDefaultWorkflowDefinitionsRoot(): string {
-  return join(DEFAULT_WORKFLOW_ROOT, "definitions");
+  return join(defaultWorkflowRoot(), "definitions");
 }
 
 async function appendJsonLine(path: string, value: unknown, signal?: AbortSignal): Promise<void> {

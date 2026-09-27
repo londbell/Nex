@@ -1,4 +1,3 @@
-import { existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import {
   CoreErrorType,
@@ -13,18 +12,14 @@ import {
   systemReminderAttachmentEntry,
   type RuntimeMessageEntry,
 } from "../../agent/message-history.js";
+import { copyLegacyDataDirOnce } from "@nex/shared/node";
+
 function resolveWorkspaceNexDir(workspaceRoot: string): string {
-  // 二次开发：兼容改名前的工作区级 .zcode 目录（存在 .nex 则不动，否则尝试改名）。
+  // 二次开发：兼容改名前的工作区级 .zcode 目录——复制而非改名，不改动用户仓库里的旧目录。
   const nexDir = join(workspaceRoot, ".nex");
-  const legacyDir = join(workspaceRoot, ".zcode");
-  try {
-    if (!existsSync(nexDir) && existsSync(legacyDir)) renameSync(legacyDir, nexDir);
-  } catch {
-    // 迁移失败按新目录处理。
-  }
+  copyLegacyDataDirOnce(nexDir, join(workspaceRoot, ".zcode"));
   return nexDir;
 }
-
 
 const PLAN_FILE_REFERENCE_MAX_BYTES = PLAN_MODE_MAX_PLAN_CHARS * 4 + 1024;
 

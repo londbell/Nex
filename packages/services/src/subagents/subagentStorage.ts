@@ -1,7 +1,7 @@
-import { existsSync, renameSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
+import { copyLegacyDataDirOnce } from "@nex/shared/node";
 
 const HOME_PREFIX = "~/";
 
@@ -23,13 +23,8 @@ export async function resolveUserSubagentRoot(options?: SubagentStorageOptions):
 
 export function resolveWorkspaceSubagentRoot(workspacePath: string): string {
   const nexDir = join(workspacePath, ".nex");
-  const legacyDir = join(workspacePath, ".zcode");
-  // 二次开发：兼容改名前的工作区级 .zcode 目录。
-  try {
-    if (!existsSync(nexDir) && existsSync(legacyDir)) renameSync(legacyDir, nexDir);
-  } catch {
-    // 迁移失败按新目录处理。
-  }
+  // 二次开发：兼容改名前的工作区级 .zcode 目录——复制而非改名，不改动用户仓库里的旧目录。
+  copyLegacyDataDirOnce(nexDir, join(workspacePath, ".zcode"));
   return join(nexDir, "agents");
 }
 

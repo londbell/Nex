@@ -1,4 +1,3 @@
-import { existsSync, renameSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import type { FileSystemPort, Logger, TraceContext } from "@nex/contracts";
@@ -7,18 +6,6 @@ import { ensureMemoryDirectoryExists } from "../memory/directory.js";
 import type { AgentRuntimeConfig, MemoryRuntimeConfig } from "../runtime/types.js";
 import type { AgentProfile, AgentMemoryScope } from "./profile.js";
 import { buildPersistentAgentMemoryPrompt } from "./persistent-memory-prompt.js";
-
-function resolveWorkspaceNexDir(workspaceRoot: string): string {
-  // 二次开发：兼容改名前的工作区级 .zcode 目录（存在 .nex 则不动，否则尝试改名）。
-  const nexDir = join(workspaceRoot, ".nex");
-  const legacyDir = join(workspaceRoot, ".zcode");
-  try {
-    if (!existsSync(nexDir) && existsSync(legacyDir)) renameSync(legacyDir, nexDir);
-  } catch {
-    // 迁移失败按新目录处理。
-  }
-  return nexDir;
-}
 
 const PERSISTENT_MEMORY_TOOLS = ["Write", "Edit"] as const;
 

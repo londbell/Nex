@@ -1,13 +1,13 @@
 /* path 规则集中维护：旧 task 快照与 provider 配置路径仍在这里收口。 */
-import { existsSync, lstatSync, renameSync } from "node:fs";
+import { lstatSync } from "node:fs";
 import { cp } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { basename, join, win32 } from "node:path";
 import { homedir } from "node:os";
 import { DATA_BASE_DIR_FORBIDDEN_WINDOWS_INSTALL_DIR_ERROR_CODE } from "@nex/shared";
+import { copyLegacyDataDirOnce } from "@nex/shared/node";
 
 let _dataBaseDir: string | null = null;
-let _legacyHomeMigrationDone = false;
 export const NEX_WINDOWS_APP_INSTALL_DIR_ENV = "NEX_WINDOWS_APP_INSTALL_DIR";
 const envDataBaseDir = process.env.NEX_DATA_BASE_DIR?.trim() || null;
 const defaultDataBaseDir = process.env.HOME?.trim() || homedir();
@@ -40,28 +40,21 @@ export function getDataBaseDir(): string {
   return defaultDataBaseDir;
 }
 
-
-/** 二次开发：Nex 改名前数据目录为 ~/.zcode，首次解析 ~/.nex 时整体改名迁移（幂等）。 */
-function migrateLegacyNexHomeOnce(): void {
-  try {
-    const root = join(getDataBaseDir(), ".nex");
-    if (_legacyHomeMigrationDone || existsSync(root)) return;
-    const legacy = join(getDataBaseDir(), ".zcode");
-    if (!existsSync(legacy)) {
-      _legacyHomeMigrationDone = true;
-      return;
-    }
-    renameSync(legacy, root);
-    _legacyHomeMigrationDone = true;
-  } catch {
-    // 失败不阻塞启动：按全新数据初始化，旧目录保留原地。
-  }
+/** 二次开发：首次解析 {dataBaseDir}/.nex 时从改名前的 .zcode 复制一份（旧目录保留）。 */
+function copyLegacyNexHomeOnce(base: string): void {
+  const result = copyLegacyDataDirOnce(join(base, ".nex"), join(base, ".zcode"));
+  // paths 是日志模块的底层依赖，这里不能反向引用 serviceLogger；用进程告警留痕。
+  if (result.status === "failed")
+    process.emitWarning(
+      `Failed to copy legacy data dir ${join(base, ".zcode")}: ${String(result.error)}`,
+    );
 }
 
 /** {dataBaseDir}/.nex */
 export function getNexDataRootDir(): string {
-  migrateLegacyNexHomeOnce();
-  return join(getDataBaseDir(), ".nex");
+  const base = getDataBaseDir();
+  copyLegacyNexHomeOnce(base);
+  return join(base, ".nex");
 }
 
 /** 非项目对话共享的真实工作目录；默认 ~/.nex/workspace/default。 */
