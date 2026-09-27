@@ -3158,6 +3158,7 @@ const zhCN: Record<string, string> = {
   "settings.modelProvider.remotePicker.selectedCount": "已选 {count} 项",
   "settings.modelProvider.remotePicker.addSelected": "添加所选模型",
   "settings.modelProvider.remotePicker.loadFailed": "模型列表加载失败",
+  "settings.modelProvider.remotePicker.alreadyAdded": "已添加",
   "settings.modelProvider.remotePicker.empty": "未获取到模型",
   "settings.modelProvider.remotePicker.addFailed": "以下模型添加失败：{models}",
   "settings.modelProvider.modelId": "模型 ID",

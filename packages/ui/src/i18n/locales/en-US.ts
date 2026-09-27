@@ -3378,6 +3378,7 @@ const enUS: Record<string, string> = {
   "settings.modelProvider.remotePicker.selectedCount": "{count} selected",
   "settings.modelProvider.remotePicker.addSelected": "Add selected models",
   "settings.modelProvider.remotePicker.loadFailed": "Failed to load model list",
+  "settings.modelProvider.remotePicker.alreadyAdded": "Added",
   "settings.modelProvider.remotePicker.empty": "No models found",
   "settings.modelProvider.remotePicker.addFailed": "Failed to add: {models}",
   "settings.modelProvider.modelId": "Model ID",

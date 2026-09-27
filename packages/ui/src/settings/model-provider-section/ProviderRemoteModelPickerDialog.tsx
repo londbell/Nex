@@ -71,9 +71,8 @@ export function ProviderRemoteModelPickerDialog({
   const existing = useMemo(() => new Set(existingModelIds), [existingModelIds]);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const list = q ? ids.filter((id) => id.toLowerCase().includes(q)) : ids;
-    return list.filter((id) => !existing.has(id));
-  }, [ids, query, existing]);
+    return q ? ids.filter((id) => id.toLowerCase().includes(q)) : ids;
+  }, [ids, query]);
 
   const toggle = (id: string, checked: boolean) => {
     setSelected((prev) => {
@@ -185,20 +184,35 @@ export function ProviderRemoteModelPickerDialog({
                   {intl.formatMessage({ id: "settings.modelProvider.remotePicker.empty" })}
                 </div>
               ) : (
-                filtered.map((id) => (
-                  <label
-                    key={id}
-                    role="option"
-                    aria-selected={selected.has(id)}
-                    className="flex cursor-pointer items-center gap-3 rounded-lg border border-input-border bg-input px-3 py-2.5 text-ui-sm hover:bg-surface-hover"
-                  >
-                    <Checkbox
-                      checked={selected.has(id)}
-                      onCheckedChange={(checked) => toggle(id, checked === true)}
-                    />
-                    <span className="min-w-0 truncate font-medium">{id}</span>
-                  </label>
-                ))
+                filtered.map((id) => {
+                  const added = existing.has(id);
+                  return (
+                    <label
+                      key={id}
+                      role="option"
+                      aria-selected={added || selected.has(id)}
+                      className={`flex items-center gap-3 rounded-lg border border-input-border bg-input px-3 py-2.5 text-ui-sm ${
+                        added
+                          ? "opacity-60"
+                          : "cursor-pointer hover:bg-surface-hover"
+                      }`}
+                    >
+                      <Checkbox
+                        disabled={added}
+                        checked={added || selected.has(id)}
+                        onCheckedChange={(checked) => toggle(id, checked === true)}
+                      />
+                      <span className="min-w-0 truncate font-medium">{id}</span>
+                      {added ? (
+                        <span className="ml-auto shrink-0 text-ui-xs text-foreground-subtle">
+                          {intl.formatMessage({
+                            id: "settings.modelProvider.remotePicker.alreadyAdded",
+                          })}
+                        </span>
+                      ) : null}
+                    </label>
+                  );
+                })
               )}
             </div>
           </>
