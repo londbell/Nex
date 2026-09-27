@@ -1,4 +1,4 @@
-import type { IPlatformService, UserInfo } from "@nex/shared";
+import type { IPlatformService } from "@nex/shared";
 import type { IServiceAccessor } from "@nex/services";
 import type { ReactNode } from "react";
 import type { CreateTaskRequest } from "@/app-shell/types.js";
