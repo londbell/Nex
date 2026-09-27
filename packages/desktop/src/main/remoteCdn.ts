@@ -1,10 +1,10 @@
-import { ZCODE_VERSION, type ZCodeEnv } from "@zcode/shared";
+import { NEX_VERSION, type NexEnv } from "@nex/shared";
 
-declare const __ZCODE_CDN_BASE_URL__: string | undefined;
+declare const __NEX_CDN_BASE_URL__: string | undefined;
 const DEFAULT_CDN_BASE_URL = "https://cdn-zcode.z.ai";
 
 export interface ResolveRemoteCdnOptions {
-  env?: ZCodeEnv;
+  env?: NexEnv;
   locale?: string;
   timeZone?: string;
   overrideBaseUrl?: string;
@@ -23,10 +23,10 @@ export function resolveRemoteCdnBaseUrls(options: ResolveRemoteCdnOptions = {}):
   const override = options.overrideBaseUrl?.trim();
   if (override) return [normalizeBaseUrl(override)];
   const baseUrl =
-    process.env.ZCODE_CDN_BASE_URL?.trim() ||
-    (typeof __ZCODE_CDN_BASE_URL__ === "undefined" ? "" : __ZCODE_CDN_BASE_URL__) ||
+    process.env.NEX_CDN_BASE_URL?.trim() ||
+    (typeof __NEX_CDN_BASE_URL__ === "undefined" ? "" : __NEX_CDN_BASE_URL__) ||
     DEFAULT_CDN_BASE_URL;
   return [
-    `${normalizeBaseUrl(baseUrl)}/zcode/electron/releases/${options.version ?? ZCODE_VERSION}`,
+    `${normalizeBaseUrl(baseUrl)}/nex/electron/releases/${options.version ?? NEX_VERSION}`,
   ];
 }

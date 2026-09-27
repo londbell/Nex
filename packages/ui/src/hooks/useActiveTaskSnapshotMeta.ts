@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import type { ZCodeTaskMeta } from "@zcode/shared";
-import { useZCodeSessionService } from "@/hooks/useZCodeSessionService.js";
-import { zcodeSessionSnapshotToTaskMeta } from "@/lib/zcodeSessionProjection.js";
+import type { NexTaskMeta } from "@nex/shared";
+import { useNexSessionService } from "@/hooks/useNexSessionService.js";
+import { nexSessionSnapshotToTaskMeta } from "@/lib/nexSessionProjection.js";
 
 function resolveImmediateActiveTaskSnapshotMeta(
-  previousSnapshotMeta: ZCodeTaskMeta | null,
+  previousSnapshotMeta: NexTaskMeta | null,
   taskId: string | null,
-  taskMetaFromLists?: ZCodeTaskMeta | null,
+  taskMetaFromLists?: NexTaskMeta | null,
 ) {
   if (!taskId || taskMetaFromLists) {
     return null;
@@ -32,14 +32,14 @@ export function useActiveTaskSnapshotMeta(
   taskId: string | null,
   preferredRemoteSessionId?: string | null,
   workspaceIdentity?: string,
-  taskMetaFromLists?: ZCodeTaskMeta | null,
+  taskMetaFromLists?: NexTaskMeta | null,
 ) {
-  const zcodeSessionService = useZCodeSessionService(
+  const nexSessionService = useNexSessionService(
     workspacePath,
     preferredRemoteSessionId,
     workspaceIdentity,
   );
-  const [snapshotMeta, setSnapshotMeta] = useState<ZCodeTaskMeta | null>(null);
+  const [snapshotMeta, setSnapshotMeta] = useState<NexTaskMeta | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,8 +60,8 @@ export function useActiveTaskSnapshotMeta(
       };
     }
 
-    void zcodeSessionService
-      // active header 只需要 session meta/标题兜底，走 ZCode Protocol 的轻量读取，
+    void nexSessionService
+      // active header 只需要 session meta/标题兜底，走 Nex Protocol 的轻量读取，
       // 避免继续经 legacy snapshot 把大任务消息整包拉回 UI。
       .readSession({
         workspacePath,
@@ -73,7 +73,7 @@ export function useActiveTaskSnapshotMeta(
         if (cancelled) {
           return;
         }
-        setSnapshotMeta(zcodeSessionSnapshotToTaskMeta(snapshot));
+        setSnapshotMeta(nexSessionSnapshotToTaskMeta(snapshot));
       })
       .catch(() => {
         if (cancelled) {
@@ -85,7 +85,7 @@ export function useActiveTaskSnapshotMeta(
     return () => {
       cancelled = true;
     };
-  }, [zcodeSessionService, taskId, taskMetaFromLists, workspaceIdentity, workspacePath]);
+  }, [nexSessionService, taskId, taskMetaFromLists, workspaceIdentity, workspacePath]);
 
   return snapshotMeta;
 }

@@ -2,12 +2,12 @@
  * 语言/界面模式在设置页「常规」、主题/字号在设置页「外观」、界面缩放在桌面端原生菜单均有入口；
  * 退出登录随账号体系一并裁剪。footer 仅保留远端控制触发与设置/返回按钮。 */
 import { memo } from "react";
-import { TID_TASK_SETTINGS_BUTTON } from "@zcode/shared";
+import { TID_TASK_SETTINGS_BUTTON } from "@nex/shared";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { cn } from "@/components/lib/utils.js";
 import { Button } from "@/components/ui/button.js";
 import { Settings } from "lucide-react";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { useNexIntl } from "@/i18n/IntlProvider.js";
 import { WorkspaceWebRemoteControlTrigger } from "@/WorkspaceWebRemoteControlTrigger.js";
 
 export const WorkspaceSidebarFooter = memo(function WorkspaceSidebarFooterComponent({
@@ -25,7 +25,7 @@ export const WorkspaceSidebarFooter = memo(function WorkspaceSidebarFooterCompon
   isDesktop?: boolean;
   className?: string;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl } = useNexIntl();
   const settingsButtonLabel =
     settingsButtonMode === "back"
       ? intl.formatMessage({ id: "workspace.backToWorkspace" })

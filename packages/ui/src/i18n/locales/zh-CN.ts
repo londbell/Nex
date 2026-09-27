@@ -569,7 +569,7 @@ const zhCN: Record<string, string> = {
   "bots.setup.guide.webhook.bind.2":
     '请求体至少带上当前 botId、稳定的 userId、`chatType: "private"`，并把 text 设成 {command}。',
   "bots.setup.guide.webhook.bind.3":
-    "如果配置了 secret，请同时在请求头里带上 `x-zcode-bot-secret`；绑定成功后再回到这里完成设置。",
+    "如果配置了 secret，请同时在请求头里带上 `x-nex-bot-secret`；绑定成功后再回到这里完成设置。",
   "bots.setup.footer.choose": "选择一个已支持的渠道后继续。",
   "bots.setup.footer.create": "测试通过后才会进入绑定步骤。",
   "bots.setup.testSuccess": "连通性测试通过",
@@ -2108,11 +2108,11 @@ const zhCN: Record<string, string> = {
   "settings.toolGroupingChanges": "分组文件更改",
   "settings.toolGroupingChangesDescription":
     "将连续的 Write、Edit 和 ApplyPatch 调用聚合为 Changes 分组。",
-  "settings.zcodeInteractionBehavior": "交互行为",
-  "settings.zcodeInteractionBehaviorDescription":
+  "settings.nexInteractionBehavior": "交互行为",
+  "settings.nexInteractionBehaviorDescription":
     "在 Nex 运行时将后续操作加入队列，或引导至下一轮工具调用后运行。",
-  "settings.zcodeInteractionBehavior.option.queue": "队列",
-  "settings.zcodeInteractionBehavior.option.guide": "引导",
+  "settings.nexInteractionBehavior.option.queue": "队列",
+  "settings.nexInteractionBehavior.option.guide": "引导",
   "settings.askUserQuestionAutoResolution": "提问自动继续",
   "settings.askUserQuestionAutoResolutionDescription":
     "开启后，Agent 提问 5 分钟未回答会自动继续；关闭后，当前和后续提问会一直等待你的回答。",
@@ -2132,7 +2132,7 @@ const zhCN: Record<string, string> = {
   "settings.taskAutoArchiveDays.option.30": "30 天后归档",
   "settings.dataBaseDir": "数据存储路径",
   "settings.dataBaseDirDescription":
-    "应用数据的根目录（默认为用户主目录），修改后会将现有数据复制到新位置。路径后缀 .zcode/v2 不可更改。",
+    "应用数据的根目录（默认为用户主目录），修改后会将现有数据复制到新位置。路径后缀 .nex/v2 不可更改。",
   "settings.dataBaseDirPlaceholder": "默认：用户主目录",
   "settings.dataBaseDirBrowse": "选择文件夹",
   "settings.dataBaseDirSave": "保存",
@@ -3347,8 +3347,8 @@ const zhCN: Record<string, string> = {
   "sidebar.usage.plan.weekly": "每周",
   "sidebar.usage.plan.toolCalls": "工具调用",
   "sidebar.usage.plan.mcp": "Nex MCP",
-  "sidebar.usage.plan.zcodeMcp": "Nex MCP",
-  "sidebar.usage.plan.zcodeMcpDescription": "Nex 预置插件 MCP 每日合计额度",
+  "sidebar.usage.plan.nexMcp": "Nex MCP",
+  "sidebar.usage.plan.nexMcpDescription": "Nex 预置插件 MCP 每日合计额度",
   "chat.planUsage.title": "套餐用量",
   "chat.planUsage.titleWithPlan": "{plan} 套餐用量",
   "chat.planUsage.providerFallback": "当前供应商",
@@ -3948,7 +3948,7 @@ const zhCN: Record<string, string> = {
   "settings.commands.description":
     "管理 Nex Agent 的 .md 命令文件。命令可通过 /command-name 在聊天中调用。",
   "settings.commands.sourceFilterLabel": "来源筛选",
-  "settings.commands.source.zcodeAgent": "Nex Agent",
+  "settings.commands.source.nexAgent": "Nex Agent",
   "settings.commands.add": "新建",
   "settings.commands.addNew": "新建命令",
   "settings.commands.addDescription": "填写命令名称和提示词，保存后返回列表。",
@@ -4032,9 +4032,9 @@ const zhCN: Record<string, string> = {
   "settings.hooks.title": "钩子",
   "settings.workspaceFileSearch.title": "工作区搜索范围",
   "settings.workspaceFileSearch.description":
-    "编辑 .zcodeignore 忽略规则（语法与 .gitignore 一致），控制工作区文件搜索的范围。保存后下次搜索生效。",
+    "编辑 .nexignore 忽略规则（语法与 .gitignore 一致），控制工作区文件搜索的范围。保存后下次搜索生效。",
   "settings.workspaceFileSearch.templateHint":
-    ".zcodeignore 尚未创建：下方为初始内容预览（.gitignore 拷贝 + 默认排除规则），保存后才会写入工作区。",
+    ".nexignore 尚未创建：下方为初始内容预览（.gitignore 拷贝 + 默认排除规则），保存后才会写入工作区。",
   "settings.workspaceFileSearch.editorLabel": "工作区搜索忽略规则编辑框",
   "settings.workspaceFileSearch.save": "保存",
   "settings.workspaceFileSearch.saved": "已保存，下次搜索生效",
@@ -4044,7 +4044,7 @@ const zhCN: Record<string, string> = {
   "settings.workspaceFileSearch.restoreDefaults": "恢复默认规则",
   "settings.workspaceFileSearch.transformFailed": "应用分区操作失败，请查看日志",
   "settings.workspaceFileSearch.reveal": "打开文件位置",
-  "settings.workspaceFileSearch.revealHint": "保存后即可在工作区根目录找到 .zcodeignore",
+  "settings.workspaceFileSearch.revealHint": "保存后即可在工作区根目录找到 .nexignore",
   "settings.workspaceFileSearch.unsaved": "有未保存的修改",
   "settings.workspaceFileSearch.noWorkspace": "当前没有打开的工作区，无法配置搜索忽略规则。",
   "settings.hooks.description": "管理任务生命周期钩子，在特定事件发生时自动执行命令。",
@@ -4098,7 +4098,7 @@ const zhCN: Record<string, string> = {
   "settingsSync.action.importSelected": "一键导入已选内容",
   "settingsSync.action.importing": "导入进行中",
   "settingsSync.action.finish": "开始使用",
-  "settingsSync.agent.zcode": "Nex Agent",
+  "settingsSync.agent.nex": "Nex Agent",
   "settingsSync.agent.claudeCode": "Claude Code",
   "settingsSync.agent.codexCli": "Codex CLI",
   "settingsSync.agent.openCode": "OpenCode",
@@ -5669,36 +5669,36 @@ const zhCN: Record<string, string> = {
   "chat.permission.switchMode.placeholder": "实施计划",
 
   // Nex Agent
-  "zcode.unavailable": "AI 代理不可用",
-  "zcode.initFailed": "启动 AI 代理失败",
-  "zcode.error.TASK_OWNED_BY_OTHER_HOST": "该任务正在另一个已连接视图中运行。",
-  "zcode.error.STALE_TASK_OWNER_COMMAND": "该操作属于旧的运行轮次，已忽略。",
-  "zcode.error.NO_ACTIVE_TASK_OWNER": "当前没有可处理该操作的任务所有者。",
-  "zcode.error.OWNER_COMMAND_FAILED": "任务所有者未能完成该操作。",
-  "zcode.error.MEDIA_BUDGET_CURRENT_ATTACHMENT_TOO_LARGE":
+  "nex.unavailable": "AI 代理不可用",
+  "nex.initFailed": "启动 AI 代理失败",
+  "nex.error.TASK_OWNED_BY_OTHER_HOST": "该任务正在另一个已连接视图中运行。",
+  "nex.error.STALE_TASK_OWNER_COMMAND": "该操作属于旧的运行轮次，已忽略。",
+  "nex.error.NO_ACTIVE_TASK_OWNER": "当前没有可处理该操作的任务所有者。",
+  "nex.error.OWNER_COMMAND_FAILED": "任务所有者未能完成该操作。",
+  "nex.error.MEDIA_BUDGET_CURRENT_ATTACHMENT_TOO_LARGE":
     "当前附件总量过大，请移除部分附件或压缩后重试。",
-  "zcode.error.MEDIA_BUDGET_CURRENT_IMAGE_TOO_LARGE":
+  "nex.error.MEDIA_BUDGET_CURRENT_IMAGE_TOO_LARGE":
     "当前图片附件过大，请移除部分图片或压缩后重试。",
-  "zcode.error.MEDIA_BUDGET_CURRENT_VIDEO_TOO_LARGE":
+  "nex.error.MEDIA_BUDGET_CURRENT_VIDEO_TOO_LARGE":
     "当前视频附件过大，请移除部分视频或压缩后重试。",
-  "zcode.error.ZCODE_RUNTIME_MODEL_UNAVAILABLE":
+  "nex.error.NEX_RUNTIME_MODEL_UNAVAILABLE":
     "当前使用的模型已不可用，请从当前模型列表中选择一个可用模型后继续。",
-  "zcode.error.ZCODE_BIGMODEL_TEAM_PLAN_MEMBER_REQUIRED":
+  "nex.error.NEX_BIGMODEL_TEAM_PLAN_MEMBER_REQUIRED":
     "当前模型不可用，请检查是否已将当前账号添加到项目成员列表",
-  "zcode.error.providerBusiness.1006": "登录状态已失效，请重新登录后再试。",
-  "zcode.error.providerBusiness.1005":
+  "nex.error.providerBusiness.1006": "登录状态已失效，请重新登录后再试。",
+  "nex.error.providerBusiness.1005":
     "今日免费计划额度已用完。请升级账户、切换模型，或等待额度恢复。",
-  "zcode.error.providerBusiness.3006": "当前模型不在可用范围内，请切换到允许的模型后重试。",
-  "zcode.error.providerBusiness.3002": "请求过于频繁，请稍后重试。",
-  "zcode.error.providerBusiness.3001": "请求参数错误，请检查输入后重试。",
-  "zcode.error.providerBusiness.3007": "请求被网关安全校验拒绝，请稍后重试或联系支持。",
-  "zcode.error.providerBusiness.3008": "当前系统繁忙，请切换模型、升级账户，或稍后再试。",
-  "zcode.error.providerBusiness.3009": "当前系统繁忙，请切换模型、升级账户，或稍后再试。",
-  "zcode.error.providerBusiness.3010": "当前系统繁忙，请切换模型、升级账户，或稍后再试。",
-  "zcode.error.providerBusiness.3102": "已超过单次最长运行时间，请创建新的闲时任务继续。",
-  "zcode.error.modelSuspiciousEmpty": "模型未返回任何内容。",
-  "zcode.error.providerBusiness.2007": "上游服务暂时不可用，请稍后重试。",
-  "zcode.error.providerBusiness.429": "请求过于频繁，请稍后重试。",
+  "nex.error.providerBusiness.3006": "当前模型不在可用范围内，请切换到允许的模型后重试。",
+  "nex.error.providerBusiness.3002": "请求过于频繁，请稍后重试。",
+  "nex.error.providerBusiness.3001": "请求参数错误，请检查输入后重试。",
+  "nex.error.providerBusiness.3007": "请求被网关安全校验拒绝，请稍后重试或联系支持。",
+  "nex.error.providerBusiness.3008": "当前系统繁忙，请切换模型、升级账户，或稍后再试。",
+  "nex.error.providerBusiness.3009": "当前系统繁忙，请切换模型、升级账户，或稍后再试。",
+  "nex.error.providerBusiness.3010": "当前系统繁忙，请切换模型、升级账户，或稍后再试。",
+  "nex.error.providerBusiness.3102": "已超过单次最长运行时间，请创建新的闲时任务继续。",
+  "nex.error.modelSuspiciousEmpty": "模型未返回任何内容。",
+  "nex.error.providerBusiness.2007": "上游服务暂时不可用，请稍后重试。",
+  "nex.error.providerBusiness.429": "请求过于频繁，请稍后重试。",
 
   // 调试信息栏
   "debugInfo.taskId": "Task ID",

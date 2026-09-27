@@ -3,23 +3,23 @@ import {
   GHOST_SUPPLIER_KEY_PREFIX,
   buildNativeSupplierKey,
   resolveSupplierKeyFromModelDisplayValue,
-  type ZCodeConfigOption,
-  type ZCodeProvider,
-  type ZCodeTaskMeta,
-} from "@zcode/shared";
+  type NexConfigOption,
+  type NexProvider,
+  type NexTaskMeta,
+} from "@nex/shared";
 
 interface ModelConfigSyncScope {
-  provider: ZCodeProvider;
+  provider: NexProvider;
   supplierKey: string;
 }
 
 interface ModelConfigSyncWorkspaceSnapshot {
   activeTaskId: string | null;
-  selectedProvider: ZCodeProvider;
+  selectedProvider: NexProvider;
   selectedSupplierKey: string;
-  configOptions: ZCodeConfigOption[] | null;
-  optimisticTaskListByTaskId: Record<string, Pick<ZCodeTaskMeta, "provider">>;
-  taskListCache: ZCodeTaskMeta[] | null;
+  configOptions: NexConfigOption[] | null;
+  optimisticTaskListByTaskId: Record<string, Pick<NexTaskMeta, "provider">>;
+  taskListCache: NexTaskMeta[] | null;
 }
 
 export function parseCustomProviderIdFromSupplierKey(supplierKey: string): string | null {
@@ -65,8 +65,8 @@ function isCustomSupplierKey(supplierKey: string): boolean {
 }
 
 function resolveModelSupplierKeyFromConfigOptions(
-  configOptions: ZCodeConfigOption[] | null,
-  provider: ZCodeProvider,
+  configOptions: NexConfigOption[] | null,
+  provider: NexProvider,
 ): string | null {
   const modelValue = resolveModelValueFromConfigOptions(configOptions);
   if (!modelValue) {
@@ -78,7 +78,7 @@ function resolveModelSupplierKeyFromConfigOptions(
 
 function resolveActiveTaskProvider(
   snapshot: ModelConfigSyncWorkspaceSnapshot,
-): ZCodeProvider | null {
+): NexProvider | null {
   const activeTaskId = snapshot.activeTaskId?.trim();
   if (!activeTaskId) {
     return null;
@@ -115,7 +115,7 @@ export function resolveWorkspaceModelConfigSyncScope(
   }
 
   if (activeTaskProvider === snapshot.selectedProvider) {
-    // 自定义供应商运行中的 ZCode Agent 回包经常只带纯模型名（如 glm-5.1），
+    // 自定义供应商运行中的 Nex Agent 回包经常只带纯模型名（如 glm-5.1），
     // 直接按模型值推导会误判成 native supplier，导致设置页保存后刷新到错误的 scope。
     // 当前 provider 与 selectedProvider 一致时，纯模型名不能证明 supplier 已变化，所以继续沿用 selectedSupplierKey。
     return {
@@ -138,7 +138,7 @@ export function resolveWorkspaceModelConfigSyncScope(
 }
 
 function resolveModelValueFromConfigOptions(
-  configOptions: ZCodeConfigOption[] | null,
+  configOptions: NexConfigOption[] | null,
 ): string | null {
   const modelOption = configOptions?.find(
     (option) => option.category === "model" && option.type === "select",

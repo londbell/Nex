@@ -16,7 +16,7 @@
     <script>
       (() => {
         // JS bundle 执行前先按本地主题偏好决定首屏底色，避免 dark 用户在这一帧看到白底闪烁。
-        const STORAGE_KEY = "zcode-theme";
+        const STORAGE_KEY = "nex-theme";
         const DEFAULT_THEME = "zai-dark";
         const BROWSER_THEME_COLORS = {
           dark: "#161616",
@@ -32,7 +32,7 @@
         };
 
         const syncBrowserThemeSurface = (theme) => {
-          document.documentElement.setAttribute("data-zcode-browser-theme-surface", theme);
+          document.documentElement.setAttribute("data-nex-browser-theme-surface", theme);
           document.documentElement.style.colorScheme = theme;
           document
             .querySelector('meta[name="theme-color"]')
@@ -49,13 +49,13 @@
                 : "light"
               : normalizeResolvedTheme(saved);
           const finalTheme = resolved === "dark" ? "dark" : "light";
-          document.documentElement.setAttribute("data-zcode-bootstrap-theme", finalTheme);
+          document.documentElement.setAttribute("data-nex-bootstrap-theme", finalTheme);
           syncBrowserThemeSurface(finalTheme);
           if (finalTheme === "dark") {
             document.documentElement.classList.add("dark");
           }
         } catch {
-          document.documentElement.setAttribute("data-zcode-bootstrap-theme", "dark");
+          document.documentElement.setAttribute("data-nex-bootstrap-theme", "dark");
           syncBrowserThemeSurface("dark");
           document.documentElement.classList.add("dark");
         }
@@ -71,8 +71,8 @@
       }
 
       body {
-        background: var(--zcode-bootstrap-bg, var(--color-background, #0f172a));
-        color: var(--zcode-bootstrap-fg, var(--color-foreground, #e2e8f0));
+        background: var(--nex-bootstrap-bg, var(--color-background, #0f172a));
+        color: var(--nex-bootstrap-fg, var(--color-foreground, #e2e8f0));
         font-family:
           Inter,
           -apple-system,
@@ -81,42 +81,42 @@
           sans-serif;
       }
 
-      html[data-zcode-bootstrap-theme="light"] body {
-        background: var(--zcode-bootstrap-bg, var(--color-background, #f8fafc));
-        color: var(--zcode-bootstrap-fg, var(--color-foreground, #334155));
+      html[data-nex-bootstrap-theme="light"] body {
+        background: var(--nex-bootstrap-bg, var(--color-background, #f8fafc));
+        color: var(--nex-bootstrap-fg, var(--color-foreground, #334155));
       }
 
-      html[data-zcode-browser-theme-surface],
-      html[data-zcode-browser-theme-surface] body,
-      html[data-zcode-browser-theme-surface] #root {
+      html[data-nex-browser-theme-surface],
+      html[data-nex-browser-theme-surface] body,
+      html[data-nex-browser-theme-surface] #root {
         /* 共享 UI 样式为 Electron vibrancy 强制透明根背景；浏览器入口必须用语义背景
            覆盖该桌面专属行为，否则浏览器工具栏、overscroll 和页面画布会回退为系统白色。 */
-        background: var(--color-background, var(--zcode-bootstrap-bg, #161616)) !important;
+        background: var(--color-background, var(--nex-bootstrap-bg, #161616)) !important;
       }
 
-      html[data-zcode-browser-theme-surface="light"],
-      html[data-zcode-browser-theme-surface="light"] body,
-      html[data-zcode-browser-theme-surface="light"] #root {
-        background: var(--color-background, var(--zcode-bootstrap-bg, #f8f8f8)) !important;
+      html[data-nex-browser-theme-surface="light"],
+      html[data-nex-browser-theme-surface="light"] body,
+      html[data-nex-browser-theme-surface="light"] #root {
+        background: var(--color-background, var(--nex-bootstrap-bg, #f8f8f8)) !important;
       }
 
-      .zcode-boot-loading {
+      .nex-boot-loading {
         display: flex;
         align-items: center;
         justify-content: center;
         width: 100%;
         height: 100%;
         /* UI 全局样式会把 body/#root 置为透明，预渲染壳必须自己承接主题背景，否则深色主题会露出浏览器白底。*/
-        background: var(--zcode-bootstrap-bg, var(--color-background, #0f172a));
-        color: var(--zcode-bootstrap-fg, var(--color-foreground, #e2e8f0));
+        background: var(--nex-bootstrap-bg, var(--color-background, #0f172a));
+        color: var(--nex-bootstrap-fg, var(--color-foreground, #e2e8f0));
       }
 
-      html[data-zcode-bootstrap-theme="light"] .zcode-boot-loading {
-        background: var(--zcode-bootstrap-bg, var(--color-background, #f8fafc));
-        color: var(--zcode-bootstrap-fg, var(--color-foreground, #334155));
+      html[data-nex-bootstrap-theme="light"] .nex-boot-loading {
+        background: var(--nex-bootstrap-bg, var(--color-background, #f8fafc));
+        color: var(--nex-bootstrap-fg, var(--color-foreground, #334155));
       }
 
-      .zcode-boot-loading__logo-shell {
+      .nex-boot-loading__logo-shell {
         position: relative;
         display: flex;
         width: 96px;
@@ -130,7 +130,7 @@
           0 8px 10px -6px rgb(0 0 0 / 0.2);
       }
 
-      .zcode-boot-loading__logo-shell::before {
+      .nex-boot-loading__logo-shell::before {
         position: absolute;
         inset: 0;
         pointer-events: none;
@@ -140,7 +140,7 @@
         border-radius: inherit;
       }
 
-      .zcode-boot-loading__logo {
+      .nex-boot-loading__logo {
         width: 56px;
         height: auto;
         color: #ffffff;
@@ -151,20 +151,20 @@
     <div id="root">
       <!-- 远程控制跨 workspace 时会整页跳转；在 JS 入口执行前先给出 loading 壳，避免出现白屏空档。-->
       <div
-        class="zcode-boot-loading"
+        class="nex-boot-loading"
         role="status"
         aria-live="polite"
         aria-busy="true"
         aria-label="Loading..."
       >
-        <div class="zcode-boot-loading__logo-shell">
+        <div class="nex-boot-loading__logo-shell">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="118px"
             height="100px"
             fill="none"
             viewBox="0 0 256 218"
-            class="zcode-boot-loading__logo"
+            class="nex-boot-loading__logo"
             aria-hidden="true"
           >
             <path

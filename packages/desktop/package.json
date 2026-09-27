@@ -1,8 +1,8 @@
 {
-  "name": "@zcode/desktop",
+  "name": "@nex/desktop",
   "private": true,
-  "description": "ZCode Desktop App",
-  "author": "ZCode",
+  "description": "Nex Desktop App",
+  "author": "Nex",
   "type": "module",
   "main": "out/main/index.js",
   "scripts": {
@@ -32,15 +32,15 @@
     "@larksuiteoapi/node-sdk": "1.61.1",
     "@lydell/node-pty-linux-arm64": "1.2.0-beta.10",
     "@lydell/node-pty-linux-x64": "1.2.0-beta.10",
-    "@zcode/client": "workspace:*",
-    "@zcode/provider": "workspace:*",
-    "@zcode/provider-node": "workspace:*",
-    "@zcode/rpc": "workspace:*",
-    "@zcode/server": "workspace:*",
-    "@zcode/services": "workspace:*",
-    "@zcode/shared": "workspace:*",
-    "@zcode/ui": "workspace:*",
-    "@zcode/zcode-cua": "workspace:*",
+    "@nex/client": "workspace:*",
+    "@nex/provider": "workspace:*",
+    "@nex/provider-node": "workspace:*",
+    "@nex/rpc": "workspace:*",
+    "@nex/server": "workspace:*",
+    "@nex/services": "workspace:*",
+    "@nex/shared": "workspace:*",
+    "@nex/ui": "workspace:*",
+    "@nex/nex-cua": "workspace:*",
     "electron-updater": "^6.8.3",
     "module-details-from-path": "^1.0.4",
     "node-forge": "^1.4.0",
@@ -76,5 +76,5 @@
     "typescript": "^6.0.2",
     "vite": "^8.0.2"
   },
-  "productName": "ZCode"
+  "productName": "Nex"
 }

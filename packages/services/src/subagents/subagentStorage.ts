@@ -1,3 +1,4 @@
+import { existsSync, renameSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
@@ -17,24 +18,32 @@ export function resolveUserHomeDir(options?: SubagentStorageOptions): string {
 }
 
 export async function resolveUserSubagentRoot(options?: SubagentStorageOptions): Promise<string> {
-  return join(await resolveZCodeStorageRoot(options), "agents");
+  return join(await resolveNexStorageRoot(options), "agents");
 }
 
 export function resolveWorkspaceSubagentRoot(workspacePath: string): string {
-  return join(workspacePath, ".zcode", "agents");
+  const nexDir = join(workspacePath, ".nex");
+  const legacyDir = join(workspacePath, ".zcode");
+  // 二次开发：兼容改名前的工作区级 .zcode 目录。
+  try {
+    if (!existsSync(nexDir) && existsSync(legacyDir)) renameSync(legacyDir, nexDir);
+  } catch {
+    // 迁移失败按新目录处理。
+  }
+  return join(nexDir, "agents");
 }
 
 export async function resolveSubagentStateFile(options?: SubagentStorageOptions): Promise<string> {
-  return join(await resolveZCodeStorageRoot(options), "v2", "agents-state.json");
+  return join(await resolveNexStorageRoot(options), "v2", "agents-state.json");
 }
 
-export async function resolveZCodeStorageRoot(options?: SubagentStorageOptions): Promise<string> {
+export async function resolveNexStorageRoot(options?: SubagentStorageOptions): Promise<string> {
   const config = await readUserCliConfig(options);
   const storage = isObjectRecord(config.storage) ? config.storage : {};
   const storageDir =
     typeof storage.dir === "string" && storage.dir.trim().length > 0
       ? storage.dir.trim()
-      : "~/.zcode";
+      : "~/.nex";
   return resolveConfigPath(storageDir, options);
 }
 
@@ -50,7 +59,7 @@ async function readUserCliConfig(
 ): Promise<Record<string, unknown>> {
   try {
     const raw = await readFile(
-      join(resolveUserHomeDir(options), ".zcode", "cli", "config.json"),
+      join(resolveUserHomeDir(options), ".nex", "cli", "config.json"),
       "utf8",
     );
     const parsed = JSON.parse(raw) as unknown;

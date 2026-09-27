@@ -6,26 +6,26 @@ import { applyComposerPermissionGrant } from "@/v4/composer/composerPermissionGr
 // Workspace presentation 水合只提供 mode 与 slash commands；模型候选、能力和首选值
 // 统一来自目标 Host ModelSelectionView。
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ZCODE_AGENT_PROVIDER, resolveExecutionState } from "@zcode/shared";
+import { NEX_AGENT_PROVIDER, resolveExecutionState } from "@nex/shared";
 import { applyComposerPlanTransition } from "@/v4/composer/composerPlanTransition.js";
 import type {
-  ZCodeConfigOption,
+  NexConfigOption,
   ModelSelection,
-  ZCodeProvider,
-  ZCodeSlashCommand,
-} from "@zcode/shared";
-import type { SessionConfigState } from "@zcode/shared/zcode-protocol-v4";
-import type { IModelSelectionService } from "@zcode/services";
-import { completeNewModelSelection } from "@zcode/provider";
+  NexProvider,
+  NexSlashCommand,
+} from "@nex/shared";
+import type { SessionConfigState } from "@nex/shared/nex-protocol-v4";
+import type { IModelSelectionService } from "@nex/services";
+import { completeNewModelSelection } from "@nex/provider";
 import {
   useModelSelectionServiceView,
   type ModelSelectionRead,
 } from "@/hooks/useModelSelectionView.js";
-import { submissionModeSchema } from "@zcode/shared/zcode-protocol-v4";
-import { prepareWorkspaceWithZCodeSessionService } from "@/hooks/useWorkspacePrepare.js";
-import { useZCodeSessionService } from "@/hooks/useZCodeSessionService.js";
+import { submissionModeSchema } from "@nex/shared/nex-protocol-v4";
+import { prepareWorkspaceWithNexSessionService } from "@/hooks/useWorkspacePrepare.js";
+import { useNexSessionService } from "@/hooks/useNexSessionService.js";
 import { useSettings } from "@/hooks/useSettingService.js";
-import { parseModelPickerValue } from "@/lib/zcodeSessionProjection.js";
+import { parseModelPickerValue } from "@/lib/nexSessionProjection.js";
 import { initializeNewTaskDraft } from "@/v4/composer/newTaskDraft.js";
 import {
   clearV4ComposerDraft,
@@ -36,7 +36,7 @@ import {
 } from "@/v4/composer/composerDraftStore.js";
 import { resolveAppFollowupMode } from "@/v4/composer/followupModeSettings.js";
 import { logger } from "@/logger.js";
-import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
+import { useNexSessionStore } from "@/store/nexSessionStore.js";
 
 /** 目录水合单飞（per workspaceKey）：draft、已有 session 和严格模式双挂载共享一次 RPC。 */
 const workspaceCatalogHydrationFlights = new Map<string, Promise<void>>();
@@ -62,9 +62,9 @@ function applyDraftModelSelection(
 }
 
 function shouldHydrateWorkspaceCatalog(params: {
-  configOptions: readonly ZCodeConfigOption[];
+  configOptions: readonly NexConfigOption[];
   sessionId: string | null;
-  slashCommands: readonly ZCodeSlashCommand[];
+  slashCommands: readonly NexSlashCommand[];
 }): boolean {
   const hasModePresentation = params.configOptions.some(
     (option) => option.category === "mode" && option.type === "select",
@@ -102,7 +102,7 @@ interface DraftConfigControl {
 export function useDraftConfigControl(params: {
   workspacePath: string;
   workspaceIdentity?: string;
-  provider?: ZCodeProvider;
+  provider?: NexProvider;
   /** 会话切换读取对应 scope；已有空选择也必须保留。 */
   sessionId: string | null;
   /** 仅匹配当前 Session 的首份投影可用作初始化；null 表示还没恢复完成。 */
@@ -121,8 +121,8 @@ export function useDraftConfigControl(params: {
     modelSelectionService,
   } = params;
   const workspaceKey = workspaceIdentity?.trim() || workspacePath;
-  const displayProvider = provider ?? ZCODE_AGENT_PROVIDER;
-  const zcodeSessionService = useZCodeSessionService(workspacePath, null, workspaceIdentity);
+  const displayProvider = provider ?? NEX_AGENT_PROVIDER;
+  const nexSessionService = useNexSessionService(workspacePath, null, workspaceIdentity);
   const { settings: sharedSettings } = useSettings();
   const appFollowupMode = resolveAppFollowupMode(sharedSettings);
   const scopeId = sessionId ?? V4_DRAFT_SCOPE_ROOT;
@@ -324,7 +324,7 @@ export function useDraftConfigControl(params: {
   // 目录已 ready（reload/广播/上次水合写过）则跳过；否则读取最小 workspace presentation。
   useEffect(() => {
     const isDraft = sessionId === null;
-    const store = useZCodeSessionStore.getState();
+    const store = useNexSessionStore.getState();
     const workspaceState = store.getWorkspaceState(workspacePath, workspaceIdentity);
     if (!agentStartupAllowed) {
       // V4 目录水合曾在无模型时直接进入 RPC，虽然 Host 不会启动 CLI，
@@ -360,11 +360,11 @@ export function useDraftConfigControl(params: {
     }
 
     store.setConfigOptionsStatus(workspacePath, "loading", workspaceIdentity);
-    const flight = prepareWorkspaceWithZCodeSessionService({
+    const flight = prepareWorkspaceWithNexSessionService({
       workspacePath,
       workspaceIdentity,
       provider: displayProvider,
-      zcodeSessionService,
+      nexSessionService,
     })
       .then((prepareResult) => {
         const baseOptions = prepareResult.configOptions ?? [];
@@ -378,7 +378,7 @@ export function useDraftConfigControl(params: {
           ),
           workspaceKey,
         });
-        const latest = useZCodeSessionStore.getState();
+        const latest = useNexSessionStore.getState();
         latest.setConfigOptions(workspacePath, baseOptions, workspaceIdentity);
         latest.setConfigOptionsStatus(workspacePath, "ready", workspaceIdentity);
         latest.setSlashCommands(
@@ -388,7 +388,7 @@ export function useDraftConfigControl(params: {
         );
       })
       .catch((error) => {
-        useZCodeSessionStore
+        useNexSessionStore
           .getState()
           .setConfigOptionsStatus(workspacePath, "error", workspaceIdentity);
         logger.warn(`[v4-workspace-catalog] workspace 目录水合失败: ${String(error)}`);
@@ -404,7 +404,7 @@ export function useDraftConfigControl(params: {
     workspaceIdentity,
     workspaceKey,
     workspacePath,
-    zcodeSessionService,
+    nexSessionService,
   ]);
 
   const handleDraftSelectModel = useCallback(

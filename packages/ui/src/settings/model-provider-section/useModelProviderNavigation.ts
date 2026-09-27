@@ -6,13 +6,13 @@ import type {
   ProviderFamilyConnectionSelection,
   ProviderFamilyConnectionSelectionSettings,
   ProviderFamilyDomain,
-} from "@zcode/shared";
+} from "@nex/shared";
 import {
   BUILTIN_MODEL_PROVIDER_IDS,
   isStartPlanModelProviderId,
   resolveModelProviderFamilySpecByProviderId,
-} from "@zcode/shared";
-import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+} from "@nex/shared";
+import { useNexIntl } from "@/i18n/IntlProvider.js";
 import { type ModelProviderNavGroup } from "@/settings/model-provider-section/constants.js";
 import {
   createCustomProviderNodeKey,
@@ -33,7 +33,7 @@ interface UseModelProviderNavigationOptions {
   familyConnectionSettingsFailed?: boolean;
   selectedNodeKey: string | null;
   setSelectedNodeKey: (key: string | null) => void;
-  intl: ReturnType<typeof useZCodeIntl>["intl"];
+  intl: ReturnType<typeof useNexIntl>["intl"];
 }
 
 export function useModelProviderNavigation({

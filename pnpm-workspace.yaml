@@ -1,8 +1,8 @@
 packages:
   - packages/*
-  - apps/zcode-cli
-  - apps/zcode-cli/packages/*
-  - apps/zcode-cli/tools/*
+  - apps/nex-cli
+  - apps/nex-cli/packages/*
+  - apps/nex-cli/tools/*
 supportedArchitectures:
   os:
     - current

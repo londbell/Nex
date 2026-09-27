@@ -6,15 +6,15 @@ import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import {
-  ZCODE_PROTOCOL_NAME,
-  ZCODE_PROTOCOL_VERSION,
-  zcodeSessionStateSnapshotSchema,
-} from "@zcode/shared";
+  NEX_PROTOCOL_NAME,
+  NEX_PROTOCOL_VERSION,
+  nexSessionStateSnapshotSchema,
+} from "@nex/shared";
 import { TaskIndexRepo } from "../src/session/taskIndexRepo.js";
-import { createZCodeTaskServiceAdapter } from "../src/zcode-agent/zcodeTaskServiceAdapter.js";
+import { createNexTaskServiceAdapter } from "../src/nex-agent/nexTaskServiceAdapter.js";
 import {
   getLegacyTaskSessionSnapshotPath,
-  getZCodeDataRootDir,
+  getNexDataRootDir,
   setDataBaseDir,
 } from "../src/paths.js";
 import { createMemoryService } from "../src/memory/memoryService.js";
@@ -33,12 +33,12 @@ const meta = {
 };
 
 test("current Project Memory catalog and files remain readable", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-current-memory-"));
+  const dir = await mkdtemp(join(tmpdir(), "nex-current-memory-"));
   setDataBaseDir(dir);
   try {
     const workspaceId = "example-0123456789abcdef";
     const memoryRoot = join(
-      getZCodeDataRootDir(),
+      getNexDataRootDir(),
       "cli",
       "memories",
       "projects",
@@ -65,7 +65,7 @@ test("current Project Memory catalog and files remain readable", async () => {
 });
 
 test("opening the task index leaves retired ACP IDs and user rows untouched", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-acp-index-"));
+  const dir = await mkdtemp(join(tmpdir(), "nex-acp-index-"));
   const path = join(dir, "tasks.sqlite");
   const repo = new TaskIndexRepo(path);
   try {
@@ -97,7 +97,7 @@ test("opening the task index leaves retired ACP IDs and user rows untouched", as
 });
 
 test("missing sessions report the owner error even when a valid ACP snapshot exists", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-acp-snapshot-"));
+  const dir = await mkdtemp(join(tmpdir(), "nex-acp-snapshot-"));
   setDataBaseDir(dir);
   const path = getLegacyTaskSessionSnapshotPath(meta.workspacePath, meta.taskId);
   const snapshot = parseLegacyTaskSessionFile({ meta, messages: [], toolCalls: [] });
@@ -106,14 +106,14 @@ test("missing sessions report the owner error even when a valid ACP snapshot exi
   await writeFile(path, content);
   const ownerError = new Error(`Session not found: ${meta.taskId}`);
   const disposable = () => ({ dispose() {} });
-  type Options = Parameters<typeof createZCodeTaskServiceAdapter>[0];
-  const service = createZCodeTaskServiceAdapter({
-    zcodeAgentService: {
+  type Options = Parameters<typeof createNexTaskServiceAdapter>[0];
+  const service = createNexTaskServiceAdapter({
+    nexAgentService: {
       async resumeSession() {
         throw ownerError;
       },
       disposeAll() {},
-    } as unknown as Options["zcodeAgentService"],
+    } as unknown as Options["nexAgentService"],
     taskIndexRepo: {
       async getTaskMeta() {
         return meta;
@@ -142,8 +142,8 @@ test("missing sessions report the owner error even when a valid ACP snapshot exi
 });
 
 test("current session recovery preserves Desktop and replayable projections", async () => {
-  const snapshot = zcodeSessionStateSnapshotSchema.parse({
-    protocol: { name: ZCODE_PROTOCOL_NAME, version: ZCODE_PROTOCOL_VERSION },
+  const snapshot = nexSessionStateSnapshotSchema.parse({
+    protocol: { name: NEX_PROTOCOL_NAME, version: NEX_PROTOCOL_VERSION },
     session: {
       sessionId: meta.taskId,
       workspace: { workspacePath: meta.workspacePath, workspaceKey: meta.workspacePath },
@@ -175,18 +175,18 @@ test("current session recovery preserves Desktop and replayable projections", as
     messages: [],
     slashCommands: [{ name: "compact", description: "Compact" }],
   });
-  type Options = Parameters<typeof createZCodeTaskServiceAdapter>[0];
+  type Options = Parameters<typeof createNexTaskServiceAdapter>[0];
   const disposable = () => ({ dispose() {} });
   const resumed: unknown[] = [];
   const indexed: unknown[] = [];
-  const service = createZCodeTaskServiceAdapter({
-    zcodeAgentService: {
+  const service = createNexTaskServiceAdapter({
+    nexAgentService: {
       async resumeSession(params: unknown) {
         resumed.push(params);
         return snapshot;
       },
       disposeAll() {},
-    } as unknown as Options["zcodeAgentService"],
+    } as unknown as Options["nexAgentService"],
     taskIndexRepo: {
       async getTaskMeta() {
         return meta;
@@ -224,10 +224,10 @@ test("current session recovery preserves Desktop and replayable projections", as
 });
 
 test("current Provider configuration starts without an old config migration callback", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-provider-current-"));
+  const dir = await mkdtemp(join(tmpdir(), "nex-provider-current-"));
   const runtime = createProviderConfigRuntime({
-    zcodeBuiltinFilePath: fileURLToPath(
-      new URL("../../../config/provider/zcode-builtin.json", import.meta.url),
+    nexBuiltinFilePath: fileURLToPath(
+      new URL("../../../config/provider/nex-builtin.json", import.meta.url),
     ),
     personalFilePath: join(dir, "personal.json"),
     personalPollingIntervalMs: false,
@@ -236,7 +236,7 @@ test("current Provider configuration starts without an old config migration call
   try {
     await runtime.start();
     const config = await runtime.configService.read();
-    assert.ok(config.zcodeBuiltinRevision);
+    assert.ok(config.nexBuiltinRevision);
     assert.deepEqual(config.personalProviderOrder, []);
     assert.deepEqual(config.personalProviders.toJSON(), []);
   } finally {
