@@ -1,25 +1,25 @@
 /**
  * 构建期开关：为真时安装包使用 Preview 身份，而后端环境仍由 `ZCODE_ENV` 单独决定。
  * 典型用法是 `ZCODE_ENV=production ZCODE_PREVIEW_IDENTITY=1`，得到一个连接生产后端、
- * 可与正式版并排安装的 `ZCode Preview`。
+ * 可与正式版并排安装的 `Nex Preview`。
  */
 export const ZCODE_PREVIEW_IDENTITY_ENV = "ZCODE_PREVIEW_IDENTITY";
 
 const PRODUCTION_IDENTITY = Object.freeze({
   flavor: "production",
-  appId: "dev.zcode.app",
-  productName: "ZCode",
-  linuxExecutableName: "zcode",
-  linuxPackageName: "zcode",
+  appId: "dev.nex.app",
+  productName: "Nex",
+  linuxExecutableName: "nex",
+  linuxPackageName: "nex",
   cuaHelperInstallVariant: null,
 });
 
 const PREVIEW_IDENTITY = Object.freeze({
   flavor: "preview",
-  appId: "dev.zcode.app.preview",
-  productName: "ZCode Preview",
-  linuxExecutableName: "zcode-preview",
-  linuxPackageName: "zcode-preview",
+  appId: "dev.nex.app.preview",
+  productName: "Nex Preview",
+  linuxExecutableName: "nex-preview",
+  linuxPackageName: "nex-preview",
   cuaHelperInstallVariant: "preview",
 });
 
@@ -52,7 +52,7 @@ export function isPreviewIdentityRequested(env = process.env) {
 
 /**
  * 产品身份（flavor）与后端环境（`ZCODE_ENV`）是两个轴：
- * - `ZCODE_ENV=test` 一律是 Preview，测试后端不能顶着正式 `ZCode` 身份覆盖用户的正式安装；
+ * - `ZCODE_ENV=test` 一律是 Preview，测试后端不能顶着正式 `Nex` 身份覆盖用户的正式安装；
  * - `ZCODE_ENV=production` 默认是正式身份，显式 `ZCODE_PREVIEW_IDENTITY=1` 时改用 Preview 身份。
  * 未知 `ZCODE_ENV` 继续按 test 处理，和共享层 normalizeZCodeEnv 的 fail-safe 默认值一致。
  */
