@@ -1,4 +1,4 @@
-import armsRum from "@arms/rum-electron";
+import armsRum from "./armsRumStub.js";
 import type { ZCodeMcpTelemetryEvent } from "@zcode/shared";
 
 interface DesktopMcpTelemetryContext {

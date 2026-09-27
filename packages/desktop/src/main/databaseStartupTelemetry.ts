@@ -1,4 +1,4 @@
-import armsRum from "@arms/rum-electron";
+import armsRum from "./armsRumStub.js";
 import {
   ZCODE_VERSION,
   type DatabaseStartupState,
