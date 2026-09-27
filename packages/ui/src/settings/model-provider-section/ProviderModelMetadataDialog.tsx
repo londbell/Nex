@@ -414,7 +414,7 @@ export function ProviderModelMetadataDialog({
         />
         <ProviderModelMetadataDialogActions
           leadingAction={
-            <>
+            <div className="flex items-center gap-4">
               {onLookupModelInfo ? (
                 <Button
                   type="button"
@@ -431,7 +431,7 @@ export function ProviderModelMetadataDialog({
                 </Button>
               ) : null}
               <ModelConfigRestoreButton disabled={saving} onRestore={onRestore} />
-            </>
+            </div>
           }
           saveLabel={intl.formatMessage({ id: "common.save" })}
           cancelLabel={intl.formatMessage({ id: "common.cancel" })}
