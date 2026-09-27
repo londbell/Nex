@@ -1,9 +1,12 @@
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
 import type { SpanExporter } from "@opentelemetry/sdk-trace-base";
+import { ZCODE_TELEMETRY_ENABLED } from "@zcode/shared";
 
 type EnvRecord = Record<string, string | undefined>;
 
 function resolveRendererActionTraceEndpoint(env: EnvRecord): string | undefined {
+  // 二次开发：遥测已彻底关闭，OTLP trace 出口不再放行。
+  if (!ZCODE_TELEMETRY_ENABLED) return undefined;
   const traceEndpoint = validHttpUrl(env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT);
   if (traceEndpoint) return traceEndpoint;
   const commonEndpoint = validHttpUrl(env.OTEL_EXPORTER_OTLP_ENDPOINT);

@@ -10,7 +10,12 @@ import {
   PeriodicExportingMetricReader,
 } from "@opentelemetry/sdk-metrics";
 import type { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base";
-import { LOCAL_TTFT_BUCKETS_MS, localTtftBatchSchema, type LocalTtftBatch } from "@zcode/shared";
+import {
+  LOCAL_TTFT_BUCKETS_MS,
+  ZCODE_TELEMETRY_ENABLED,
+  localTtftBatchSchema,
+  type LocalTtftBatch,
+} from "@zcode/shared";
 import {
   createRendererActionTraceExporter,
   parseRendererActionTraceHeaders,
@@ -27,14 +32,18 @@ export function createLocalTtftExporter(options: {
   version: string;
   logger: { warn(...args: unknown[]): void };
 }) {
-  const exporter = createRendererActionTraceExporter(options.env);
-  const endpoint =
-    validHttpUrl(options.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT) ??
-    validHttpUrl(
-      options.env.OTEL_EXPORTER_OTLP_ENDPOINT
-        ? `${options.env.OTEL_EXPORTER_OTLP_ENDPOINT.replace(/\/$/, "")}/v1/metrics`
-        : undefined,
-    );
+  // 二次开发：遥测已彻底关闭，本地 TTFT metric 不再导出到 OTLP（enqueue 随之空转）。
+  const exporter = ZCODE_TELEMETRY_ENABLED
+    ? createRendererActionTraceExporter(options.env)
+    : undefined;
+  const endpoint = ZCODE_TELEMETRY_ENABLED
+    ? (validHttpUrl(options.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT) ??
+      validHttpUrl(
+        options.env.OTEL_EXPORTER_OTLP_ENDPOINT
+          ? `${options.env.OTEL_EXPORTER_OTLP_ENDPOINT.replace(/\/$/, "")}/v1/metrics`
+          : undefined,
+      ))
+    : undefined;
   const resource = resourceFromAttributes({
     "service.name": "zcode-local-ttft",
     "service.version": options.version,

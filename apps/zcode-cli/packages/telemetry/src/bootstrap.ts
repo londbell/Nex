@@ -121,7 +121,11 @@ export async function prepareModelTelemetryEnv(
   env: EnvRecord,
   options: PrepareModelTelemetryOptions = {},
 ): Promise<EnvRecord> {
-  if (!resolveOtlpTraceEndpoint(env) || isExplicitlyDisabled(env.ZCODE_MODEL_TELEMETRY_ENABLED)) {
+  // 二次开发：遥测默认关闭，仅在显式设 ZCODE_MODEL_TELEMETRY_ENABLED=1/true/on 时启用。
+  if (
+    !resolveOtlpTraceEndpoint(env) ||
+    !isExplicitlyEnabled(env.ZCODE_MODEL_TELEMETRY_ENABLED)
+  ) {
     return env;
   }
   const existingInstallationId = normalizeTelemetryDeviceMid(env.ZCODE_TELEMETRY_DEVICE_MID);
@@ -411,8 +415,8 @@ function validHttpUrl(value: string): string | undefined {
   }
 }
 
-function isExplicitlyDisabled(value: string | undefined): boolean {
-  return ["0", "false", "off", "disabled"].includes(value?.trim().toLowerCase() ?? "");
+function isExplicitlyEnabled(value: string | undefined): boolean {
+  return ["1", "true", "on", "enabled"].includes(value?.trim().toLowerCase() ?? "");
 }
 
 function safeDecode(value: string): string {
