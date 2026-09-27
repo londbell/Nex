@@ -3,22 +3,22 @@
 <div align="center">
   <img src="public/logo/icons/1024x1024.png" alt="Nex" width="128" height="128" />
 </div>
-<p align="center">
-  <a href="https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=47ag983c-8fcb-4d6d-814b-5395193a712c&amp;qr_code=true">飞书社群</a> ·
-  <a href="https://discord.gg/z9aBcQXZQ3">Discord</a>
-</p>
+
 <p align="center">
   简体中文 | <a href="README.en.md">English</a>
 </p>
 
-
-
 Nex 是 AI 编程工作台，提供桌面应用、浏览器界面和终端 Agent。本仓库包含客户端、后端服务、共享 UI，以及 Agent CLI 与运行时源码。
 
-## 更新
+## 项目来源与版本
 
-- 2026-9-23：更新至 Nex v3.14.3 版本。
+- Nex 当前版本 **v1.0.0**。
+- Nex 基于 [ZCode](https://github.com/zai-org/ZCode) **v3.14.3**（Apache-2.0 开源版本）二次开发而来，
+  在其基础上做了品牌重命名、遥测与账号体系裁剪、UI 精简等深度定制，
+  详见 [CHANGELOG.md](CHANGELOG.md)。
+- 感谢 ZCode 原团队的优秀工作，原项目的 Apache-2.0 许可与归属声明见 [LICENSE](LICENSE) 与 [NOTICE.md](NOTICE.md)。
 
+## 初始化
 ## 初始化
 
 准备 Git、Node.js **24.14.0** 和 pnpm **10.33.2**，版本以 [mise.toml](mise.toml) 为准。以下开发和打包命令均在仓库根目录执行。

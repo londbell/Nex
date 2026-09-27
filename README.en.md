@@ -3,15 +3,19 @@
 <div align="center">
   <img src="public/logo/icons/1024x1024.png" alt="Nex" width="128" height="128" />
 </div>
+
 <p align="center">
-  <a href="https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=47ag983c-8fcb-4d6d-814b-5395193a712c&amp;qr_code=true">Feishu community</a> ·
-  <a href="https://discord.gg/z9aBcQXZQ3">Discord</a>
-</p>
-<p align="center">
-  <a href="README.md">简体中文</a> | English
+  简体中文 | <a href="README.md">简体中文</a>
 </p>
 
-Nex is an AI coding workspace with desktop, browser, and terminal interfaces. This repository contains the clients, backend services, shared UI, and Agent CLI and runtime source code.
+Nex is an AI coding workbench with a desktop app, a browser UI, and a terminal agent.
+
+## Origin & Version
+
+- Current Nex version: **v1.0.0**.
+- Nex is a fork of [ZCode](https://github.com/zai-org/ZCode) **v3.14.3** (Apache-2.0), deeply customized:
+  rebranding, telemetry and account-system removal, UI simplification, etc. See [CHANGELOG.md](CHANGELOG.md).
+- Credits to the original ZCode team. Apache-2.0 license and attribution: [LICENSE](LICENSE), [NOTICE.md](NOTICE.md).
 
 ## Updates
 
