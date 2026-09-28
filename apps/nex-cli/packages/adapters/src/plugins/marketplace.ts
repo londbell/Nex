@@ -6,7 +6,11 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { PluginDiagnostic, PluginManifest, PluginStoreListing } from "@nex/contracts";
 import { isOfficialMarketplaceId, NEX_OFFICIAL_PLUGIN_MARKETPLACE } from "@nex/contracts";
-import { DEFAULT_PLUGIN_MARKETPLACES, sanitizeNexRuntimeEnv } from "@nex/shared";
+import {
+  DEFAULT_PLUGIN_MARKETPLACES,
+  RETIRED_PRESET_MARKETPLACE_IDS,
+  sanitizeNexRuntimeEnv,
+} from "@nex/shared";
 import { loadPluginMcpServerDefinitions, resolvePluginMcpServers } from "./mcp.js";
 import {
   appendPluginSourceCleanupError,
@@ -279,6 +283,10 @@ export function loadKnownMarketplacesSync(storageRoot: string): KnownMarketplace
 export function ensureDefaultPluginMarketplaces(storageRoot: string): KnownMarketplaceRecord[] {
   const known = loadKnownMarketplacesSync(storageRoot);
   const existingIds = new Set(known.map((record) => record.id));
+  // Nex 不预置市场（见 shared/plugin-marketplaces.ts）：存量安装里若残留旧预置
+  // （现为 404 的 ZCode CDN 官方市场），在读取时一并移除，避免商店继续展示死源并
+  // 触发自动刷新。只删 known 记录，已安装的缓存插件不受影响。
+  const retired = known.filter((record) => RETIRED_PRESET_MARKETPLACE_IDS.has(record.id));
   const now = new Date().toISOString();
   const missing = DEFAULT_PLUGIN_MARKETPLACES.filter(
     (marketplace) => !existingIds.has(marketplace.id),
@@ -293,8 +301,12 @@ export function ensureDefaultPluginMarketplaces(storageRoot: string): KnownMarke
       pluginCount: marketplace.pluginCount,
     }),
   );
-  if (missing.length === 0) return known;
-  const next = [...known, ...missing];
+  if (retired.length === 0 && missing.length === 0) return known;
+  const retiredIds = new Set(retired.map((record) => record.id));
+  const next = [
+    ...known.filter((record) => !retiredIds.has(record.id)),
+    ...missing,
+  ];
   writeKnownMarketplacesSync(storageRoot, next);
   return next;
 }

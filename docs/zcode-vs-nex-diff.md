@@ -48,7 +48,13 @@
 **结论：nex 开箱只有 browser-use + node-repl-host + dynamic-workflows 技能包**；
 产品多 13 个插件。
 
-## 2. ⚠️ rename 半成品问题（建议优先处理）
+## 2. rename 半成品问题（✅ 已修复，见 PR `refactor/remove-default-plugin-marketplace`）
+
+> 2026-09-28 更新：随「移除默认插件市场」一并解决——`DEFAULT_PLUGIN_MARKETPLACES`
+> 清空（不预置任何市场，添加市场源能力保留），存量安装的官方市场残留记录在
+> `ensureDefaultPluginMarketplaces` 读取时清除，官方插件 id 统一为 `@nex-plugins-official`
+> （旧 id 作兼容别名自动归一），商店页官方目录自动刷新已移除。
+> 以下为修复前的分析记录，供追溯。
 
 CHANGELOG「已知保留项」写着*「插件市场仍使用 `zcode-plugins-official` ID 与
 z.ai CDN（后续单独处理）」*，但 rename commit `793da45` 实际改了一半，
@@ -90,14 +96,22 @@ z.ai CDN（后续单独处理）」*，但 rename commit `793da45` 实际改了�
 
 ## 4. 建议动作（按优先级）
 
-1. **统一 marketplace id**（§2）——这是阻断默认插件启用和未来 CUA 装配的直接 bug。
-2. **补插件 seed**：从产品 `glm/packages/` 提取内容型插件
-   （documents / pdf / presentations / spreadsheets / image-search /
-   skill-creator / plugin-creator / nex-guide）放进 `apps/nex-cli/packages/`，
-   并同步扩充 `sea-official-plugin-assets.mjs` 的 `officialSeaPlugins` 与
-   `official-plugin-definitions.ts` 的 `version`/`requiredSeedPaths`；
-   或自建 CDN 分片后统一走网络分发。
+1. ~~**统一 marketplace id**（§2）~~ ✅ 已随「移除默认插件市场」完成。
+2. **补插件 seed**：从产品 `glm/packages/` 提取内容型插件（注意许可证，见 §5），或自建
+   市场仓库后由用户添加；`sea-official-plugin-assets.mjs` 的 `officialSeaPlugins` 与
+   `official-plugin-definitions.ts` 的 `version`/`requiredSeedPaths` 需同步扩充。
 3. **决定 remote runtime CDN**：`/nex/electron/releases/` 404——remote agent
    要么自托管该路径，要么禁用相关入口。
 4. 清理 `superpowers-plugin` 空壳与 `cli/dist/zcode.cjs` 遗留。
 5. 更新 `config/default.json` 的 feedback / community 指向自己的渠道。
+
+## 5. 插件许可证备注（copy 前必读）
+
+- 上游开源仓库（Apache-2.0）内的插件（browser-use、node-repl-host、bundled-skills）可自由使用
+- 产品安装包 `glm/packages/` 内的插件**不在 Apache-2.0 授权范围内**：
+  - documents / pdf / presentations / spreadsheets 四件套为**专有非商业许可**
+    （`skills/*/LICENSE.txt`：仅限个人/教育/非商业，商用需书面许可，解释权归作者）——
+    不得 copy 进本发行版；如需同类能力应基于公开标准格式自行实现
+  - skill-creator / plugin-creator / nex-guide / android-emulator / ios-simulator 声明为 MIT，
+    copy 时需补齐版权与许可声明并登记 THIRD-PARTY-NOTICES
+  - image-search 为 Apache-2.0，但硬依赖 ZCode 控制面账号体系，fork 无可用后端

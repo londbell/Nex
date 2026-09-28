@@ -26,7 +26,7 @@ const OFFICIAL_BUILTIN_PLUGIN_NAMES = new Set([
 
 const OFFICIAL_PLUGIN_PATH_MARKERS = [
   "/nex-plugins-official/",
-  "\\zcode-plugins-official\\",
+  "\\nex-plugins-official\\",
   "/android-emulator-plugin/",
   "/browser-use-plugin/",
   "/document-skills-plugin/",
