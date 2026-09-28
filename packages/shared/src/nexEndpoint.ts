@@ -2,24 +2,13 @@ import type { NexEnv } from "./env.js";
 
 export const DEFAULT_NEX_ENDPOINT_ORIGIN = "https://zcode.z.ai";
 export const DEFAULT_BIGMODEL_API_ORIGIN = "https://bigmodel.cn";
-export const DEFAULT_ZAI_OAUTH_ORIGIN = "https://chat.z.ai";
-export const DEFAULT_ZAI_BUSINESS_BASE_URL = "https://api.z.ai";
-export const DEFAULT_ZAI_OAUTH_CLIENT_ID = "client_P8X5CMWmlaRO9gyO-KSqtg";
 
 // 构建仅注入公开链接；Node 调用方仍可显式传 env，避免读取另一进程的配置。
 declare const __NEX_ENDPOINT_ENV__: Record<string, string | undefined> | undefined;
 export function pickProductEndpointEnv(
   env: Record<string, string | undefined>,
 ): Record<string, string> {
-  const keys = [
-    "NEX_BASE_URL",
-    "NEX_ENDPOINT_ORIGIN",
-    "BIGMODEL_API_BASE_URL",
-    "ZAI_OAUTH_ORIGIN",
-    "ZAI_BUSINESS_BASE_URL",
-    "ZAI_OAUTH_CLIENT_ID",
-    "ZAI_OAUTH_APP_ID",
-  ];
+  const keys = ["NEX_BASE_URL", "NEX_ENDPOINT_ORIGIN", "BIGMODEL_API_BASE_URL"];
   return Object.fromEntries(
     keys.flatMap((key) => (env[key]?.trim() ? [[key, env[key]!.trim()]] : [])),
   );
@@ -52,28 +41,6 @@ export interface RuntimeBigModelApiEnv {
   [key: string]: string | undefined;
   NEX_ENV?: string;
   BIGMODEL_API_BASE_URL?: string;
-}
-
-export interface RuntimeZaiEndpointEnv {
-  [key: string]: string | undefined;
-  NEX_ENV?: string;
-  ZAI_OAUTH_ORIGIN?: string;
-  ZAI_BUSINESS_BASE_URL?: string;
-  ZAI_OAUTH_CLIENT_ID?: string;
-  ZAI_OAUTH_APP_ID?: string;
-}
-
-export interface RuntimeProductEndpointEnv
-  extends RuntimeNexEndpointEnv, RuntimeBigModelApiEnv, RuntimeZaiEndpointEnv {}
-
-export interface RuntimeProductEndpointConfig {
-  nexEnv: NexEnv;
-  nexEndpointOrigin: string;
-  nexEndpointUrls: NexEndpointUrls;
-  zaiOAuthOrigin: string;
-  zaiBusinessBaseUrl: string;
-  zaiOAuthClientId: string;
-  bigModelApiOrigin: string;
 }
 
 function readRuntimeEnvValue(
@@ -165,69 +132,6 @@ export function buildBigModelCodingPlanTeamManageUrl(
   env: RuntimeBigModelApiEnv = readProductEndpointEnv(),
 ): string {
   return buildBigModelApiUrl(env, "/coding-plan/team/plans");
-}
-
-export function resolveZaiOAuthOrigin(
-  env: RuntimeZaiEndpointEnv = readProductEndpointEnv(),
-): string {
-  return normalizeNexEndpointOrigin(
-    readRuntimeEnvValue(env, "ZAI_OAUTH_ORIGIN") ?? DEFAULT_ZAI_OAUTH_ORIGIN,
-  );
-}
-
-export function resolveZaiBusinessBaseUrl(
-  env: RuntimeZaiEndpointEnv = readProductEndpointEnv(),
-): string {
-  return normalizeNexEndpointOrigin(
-    readRuntimeEnvValue(env, "ZAI_BUSINESS_BASE_URL") ?? DEFAULT_ZAI_BUSINESS_BASE_URL,
-  );
-}
-
-export function resolveZaiOAuthClientId(
-  env: RuntimeZaiEndpointEnv = readProductEndpointEnv(),
-): string {
-  return (
-    readRuntimeEnvValue(env, "ZAI_OAUTH_CLIENT_ID") ??
-    readRuntimeEnvValue(env, "ZAI_OAUTH_APP_ID") ??
-    DEFAULT_ZAI_OAUTH_CLIENT_ID
-  );
-}
-
-export function buildZaiOAuthUrl(origin: string, path: string): string {
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return `${normalizeNexEndpointOrigin(origin)}${normalizedPath}`;
-}
-
-export function buildRuntimeZaiOAuthUrl(
-  env: RuntimeZaiEndpointEnv = readProductEndpointEnv(),
-  path: string,
-): string {
-  return buildZaiOAuthUrl(resolveZaiOAuthOrigin(env), path);
-}
-
-export function buildRuntimeZaiBusinessUrl(
-  env: RuntimeZaiEndpointEnv = readProductEndpointEnv(),
-  path: string,
-): string {
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return `${resolveZaiBusinessBaseUrl(env)}${normalizedPath}`;
-}
-
-export function resolveRuntimeProductEndpointConfig(
-  env: RuntimeProductEndpointEnv = readProductEndpointEnv(),
-): RuntimeProductEndpointConfig {
-  const nexEnv = resolveRuntimeNexEnv(env);
-  const nexEndpointOrigin = resolveRuntimeNexEndpointOrigin(env);
-
-  return {
-    nexEnv,
-    nexEndpointOrigin,
-    nexEndpointUrls: buildNexEndpointUrls(nexEndpointOrigin),
-    zaiOAuthOrigin: resolveZaiOAuthOrigin(env),
-    zaiBusinessBaseUrl: resolveZaiBusinessBaseUrl(env),
-    zaiOAuthClientId: resolveZaiOAuthClientId(env),
-    bigModelApiOrigin: resolveBigModelApiOrigin(env),
-  };
 }
 
 export function buildNexEndpointUrls(origin: string): NexEndpointUrls {

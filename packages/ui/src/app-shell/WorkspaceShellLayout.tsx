@@ -1831,7 +1831,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
                               foregroundEnabled={isWorkspaceVisible}
                               workspacePath={workspaceAbsPath}
                               workspaceIdentity={workspaceIdentity}
-                              isDesktop={isDesktop === true}
                               remoteSessionId={workspaceRemoteSessionId}
                               sessionId={activeTaskId}
                               activeSelectionSideChatSessionId={activeSelectionSideChatSessionId}

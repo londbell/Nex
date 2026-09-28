@@ -126,8 +126,6 @@ export { createBotsService } from "./bots/botsService.js";
 export { createFileWatcherService } from "./fileWatcher/fileWatcherService.js";
 export { ensureDeviceMid } from "./device/deviceMid.js";
 export type { EnsureDeviceMidOptions } from "./device/deviceMid.js";
-export { createTelemetryCore, ensureTelemetryDeviceMid } from "./telemetry/telemetryCore.js";
-export type { EnsureTelemetryDeviceMidOptions } from "./telemetry/telemetryCore.js";
 export { importLegacyPersonalProviderConfig } from "./model-provider/legacyPersonalProviderConfigImporter.js";
 export {
   createProviderConfigRuntime,
@@ -289,7 +287,6 @@ import { createCredentialService } from "./credential/credentialService.js";
 import { createBroadcastService } from "./broadcast/broadcastService.js";
 import { createNexAgentService } from "./nex-agent/nexAgentService.js";
 import type { NexAgentCommandResolver } from "./nex-agent/nexAgentProcessManager.js";
-import { buildAgentTelemetrySpawnEnv } from "./nex-agent/agentTelemetryEnv.js";
 import { resolveNexAgentPresentationSurface } from "./nex-agent/nexAgentPresentationSurface.js";
 import { createNexTaskServiceAdapter } from "./nex-agent/nexTaskServiceAdapter.js";
 import { createNexSessionService } from "./nex-session/nexSessionService.js";
@@ -399,7 +396,6 @@ import { resolveBrokerSocketPath } from "@nex/nex-cua/broker/socketPath";
 import {
   DEFAULT_NEX_MODEL_CONTEXT_BUDGET_STRATEGY,
   resolveSafeEndpointHostname,
-  NEX_JWT_INVALID_BROADCAST_CHANNEL,
   formatLogPrefix,
   isCredentialDecryptError,
   isStartPlanModelProviderId,
@@ -417,7 +413,6 @@ import {
   NEX_CUA_PLUGIN_AUTHORITY_ENV_KEY,
   type NexAutomation,
   type NexAutomationRun,
-  getCapturedNexAgentTelemetryEnv,
   NEX_DESKTOP_CONTEXT_PROMPT_ENABLED_ENV,
   ZAI_PROVIDER_ID,
   nexAccountAccessSchema,
@@ -1212,7 +1207,6 @@ export function createLocalServices(options: {
   serviceAuthorityMode?: ServiceAuthorityMode;
   cuaProductMcpServerResolver?: CuaProductMcpServerResolver;
   agentRuntimeContext?: {
-    getDeviceMid?: () => string | undefined;
     runtimeSurface?: "desktop_local_host" | "remote_workspace_host";
   };
   /** browser-use 执行桥（host→main WebContentsView+CDP）；desktop host 注入，缺省则 browser 不可用。 */
@@ -1880,13 +1874,6 @@ export function createLocalServices(options: {
           [BROKER_UNAVAILABLE_ENV]: "broker_unavailable: helper lifecycle is disposed",
         };
       }
-      const telemetryEnv = getCapturedNexAgentTelemetryEnv();
-      const telemetryConfigured = Boolean(
-        telemetryEnv.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT || telemetryEnv.OTEL_EXPORTER_OTLP_ENDPOINT,
-      );
-      const telemetryDeviceMid = telemetryConfigured
-        ? options?.agentRuntimeContext?.getDeviceMid?.()?.trim()
-        : undefined;
       // Host 是旧配置迁移的唯一写入者。Agent spawn 前等待初始化完成，避免 Worker
       // 先拿到尚不存在的 provider_config.json 并发布短暂空 Registry。
       await providerConfigRuntime.start();
@@ -1904,11 +1891,6 @@ export function createLocalServices(options: {
         // 上面 cuaProductHelperEnv 已完成代际校验与 unavailable 兜底，取代 staging 侧
         // 直接调用 buildCuaProductHelperAgentEnv 的旧路径。
         ...cuaProductHelperEnv,
-        ...buildAgentTelemetrySpawnEnv({
-          deviceMid: telemetryDeviceMid,
-          runtimeSurface: options?.agentRuntimeContext?.runtimeSurface ?? "remote_workspace_host",
-          telemetryEnv,
-        }),
         ...createNodeProviderRuntimePathEnv({
           // Built-in 已只读 bundled 配置；保留异步 getter 以兼容路径环境契约。
           nexBuiltinFilePath: await providerConfigRuntime.resolveNexBuiltinActiveFilePath(),

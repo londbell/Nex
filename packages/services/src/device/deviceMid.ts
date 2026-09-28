@@ -166,11 +166,9 @@ function rememberDeviceMid(deviceStateFile: string, deviceMid: string): string {
 
 /**
  * 调用方必须已持有设备身份文件锁（telemetry-state.lock）；只在 state 缺失 deviceMid 时生成并写回。
- *
- * 遥测上报等场景在自身临界区内已持有同一把锁并维护完整 state，需要把 deviceMid 的生成
- * 合并进同一次落盘；此时不能走会重新抢锁的 ensureDeviceMid，改用本入口。
+ * 只供 ensureDeviceMid 在自身临界区内复用，避免持锁状态下重新抢锁。
  */
-export async function ensureDeviceMidInLockedState(
+async function ensureDeviceMidInLockedState(
   state: DeviceState,
   options: EnsureDeviceMidOptions,
 ): Promise<string> {

@@ -27,12 +27,12 @@
     "lint:fix": "oxlint --fix"
   },
   "dependencies": {
-    "@babel/runtime": "^7.24.5",
     "@fiahfy/icns": "^0.0.7",
     "@larksuiteoapi/node-sdk": "1.61.1",
     "@lydell/node-pty-linux-arm64": "1.2.0-beta.10",
     "@lydell/node-pty-linux-x64": "1.2.0-beta.10",
     "@nex/client": "workspace:*",
+    "@nex/nex-cua": "workspace:*",
     "@nex/provider": "workspace:*",
     "@nex/provider-node": "workspace:*",
     "@nex/rpc": "workspace:*",
@@ -40,9 +40,7 @@
     "@nex/services": "workspace:*",
     "@nex/shared": "workspace:*",
     "@nex/ui": "workspace:*",
-    "@nex/nex-cua": "workspace:*",
     "electron-updater": "^6.8.3",
-    "module-details-from-path": "^1.0.4",
     "node-forge": "^1.4.0",
     "node-pty": "^1.0.0",
     "playwright-core": "1.59.1",

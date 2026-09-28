@@ -108,16 +108,6 @@ const asarCliPath = resolve(
   "asar.js",
 );
 const REQUIRED_ASAR_RUNTIME_MODULES = [
-  "module-details-from-path",
-  "@opentelemetry/api-logs",
-  // Bugfix: telemetry 的 OTLP exporter 会在启动阶段加载 sdk-metrics。pnpm 开发态可从
-  // workspace 根目录解析，但 electron-builder 不会稳定复制这条 hoisted 依赖，导致安装包启动即崩溃。
-  // 将 sdk-metrics 作为闭包根注入，同时递归带齐它的 OpenTelemetry 运行时依赖。
-  "@opentelemetry/sdk-metrics",
-  // OTLP proto 导出链闭包根：递归带齐 otlp-transformer/protobufjs 及其子依赖，
-  // 否则 hoisted 布局漏 protobufjs 时已安装应用启动即报 Cannot find module 'protobufjs/minimal'。
-  "@opentelemetry/exporter-trace-otlp-proto",
-  "@opentelemetry/exporter-metrics-otlp-proto",
   "pngjs",
   // @nex/services 的代理连通性探测会动态 require("undici") 取 ProxyAgent。
   // tsup 虽然把 services 代码并进了主/host 产物，但不会把这个运行时 require 的包内联进去，
@@ -385,7 +375,7 @@ async function injectHoistedRuntimeModulesIntoAsar(context) {
 
         // pnpm hoisted 布局下，electron-builder 可能把主包打进 app.asar，
         // 却漏掉它解析时还要去根 node_modules 找的运行时依赖。
-        // 之前 require-in-the-middle 漏过 module-details-from-path，这次 @fiahfy/icns 又漏了 pngjs，
+        // 之前这里漏过 @fiahfy/icns 的 pngjs，
         // 最终都会在已安装应用里触发 Cannot find module 并让主进程启动直接崩溃。
         // 这里按 package.json 递归补齐依赖闭包，避免每次只补一个缺失包、上线后再暴露下一个子依赖。
         // 只靠 package.json 显式依赖、本包 node_modules 镜像、files include 都没让它稳定进 asar，

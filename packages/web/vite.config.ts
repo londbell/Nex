@@ -8,12 +8,7 @@ import { pdfJsCMapsPlugin } from "../ui/vite/pdfJsCMapsPlugin.js";
 import { thirdPartyNoticesVitePlugin } from "../../scripts/third-party-notices.mjs";
 // Vite 配置在 Node 加载期执行，不能导入 @nex/shared 根入口。
 // 根入口包含 NodeNext 风格的源码 re-export，Node 会按真实文件查找 .js 并在 bootstrap 阶段失败。
-import {
-  resolveRuntimeNexEndpointOrigin,
-  pickProductEndpointEnv,
-  resolveZaiOAuthClientId,
-  resolveZaiOAuthOrigin,
-} from "@nex/shared/nexEndpoint";
+import { resolveRuntimeNexEndpointOrigin, pickProductEndpointEnv } from "@nex/shared/nexEndpoint";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const REPO_ROOT = resolve(HERE, "../..");
@@ -34,9 +29,6 @@ export default defineConfig(({ mode }) => {
     NEX_ENV: nexEnv,
   };
   const nexEndpointOrigin = resolveRuntimeNexEndpointOrigin(endpointEnv);
-  const zaiOAuthOrigin = resolveZaiOAuthOrigin(endpointEnv);
-  // ZAI OAuth client_id 是公开标识，允许注入浏览器包；secret/token 不得走 VITE_。
-  const zaiOAuthClientId = resolveZaiOAuthClientId(endpointEnv);
 
   return {
     plugins: [pdfJsCMapsPlugin(), react(), tailwindcss(), thirdPartyNoticesVitePlugin()],
@@ -56,13 +48,6 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       proxy: {
-        // Web 登录本地调试时，OAuth token 交换必须先命中线上同源接口。
-        // 该专用代理放在 `/api` 通配代理之前，避免被转发到本地 server 导致 404。
-        "/api/v1/oauth/token": {
-          target: nexEndpointOrigin,
-          changeOrigin: true,
-          secure: true,
-        },
         // 将 /ws 和 /api 请求代理到 server（默认 3030 端口）
         "/ws": { target: "ws://localhost:3030", ws: true },
         "/api": { target: "http://localhost:3030" },
@@ -89,9 +74,6 @@ export default defineConfig(({ mode }) => {
       "import.meta.env.VITE_NEX_BASE_URL": JSON.stringify(nexEndpointOrigin),
       // 兼容旧 Web runtime 读取名；新代码统一读 VITE_NEX_BASE_URL。
       "import.meta.env.VITE_NEX_ENDPOINT_ORIGIN": JSON.stringify(nexEndpointOrigin),
-      // 明确注入 OAuth 公开配置，避免 Web 端在不同 mode 下隐式依赖源码 fallback。
-      "import.meta.env.VITE_ZAI_OAUTH_CLIENT_ID": JSON.stringify(zaiOAuthClientId),
-      "import.meta.env.VITE_ZAI_OAUTH_ORIGIN": JSON.stringify(zaiOAuthOrigin),
     },
     build: {
       // 生产不在浏览器产物暴露 sourceMappingURL，避免客户端侧还原业务源码。

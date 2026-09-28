@@ -1,12 +1,5 @@
 /* eslint-disable max-lines -- 定时任务主视图集中维护列表、创建/编辑整页路由与启停/删除操作，集中更利于交互一致。 */
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ComponentType,
-  type SVGProps,
-} from "react";
+import { useCallback, useEffect, useState, type ComponentType, type SVGProps } from "react";
 import { CircleCheck, RotateCcw, TriangleAlert } from "lucide-react";
 import {
   AUTOMATION_CREATE_LIMIT,
@@ -36,8 +29,6 @@ import { AutomationScheduledTemplateIcon } from "@/settings/AutomationScheduledT
 import { useNexIntl } from "@/i18n/IntlProvider.js";
 import { useServices } from "@/hooks/useServices.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
-import { usePlatform } from "@/hooks/usePlatform.js";
-import { useProviderSettingsView } from "@/hooks/useProviderSettingsView.js";
 import { useSettings } from "@/hooks/useSettingService.js";
 import { logger } from "@/logger.js";
 import {
@@ -76,11 +67,6 @@ import {
   type AutomationStatusFilter,
 } from "@/settings/automationStatusFilter.js";
 import { isRemoteAutomationWorkspace } from "@/hooks/useAutomationProjectOptions.js";
-import {
-  reportAutomationActionClick,
-  reportAutomationCreateResult,
-  resolveAutomationSelectionTelemetry,
-} from "@/lib/automationTelemetry.js";
 import {
   materializeScheduledTemplateDraft,
   resolveAutomationTemplateText,
@@ -365,12 +351,8 @@ export function AutomationsSection({
   onOpenSession,
 }: AutomationsSectionProps) {
   const { intl, locale } = useNexIntl();
-  const platform = usePlatform();
   const { clientScenesService, nexAgentService } = useServices();
   const confirmDialog = useConfirmDialog();
-  const providerSettingsRead = useProviderSettingsView();
-  const providerSettingsView =
-    providerSettingsRead.state.status === "ready" ? providerSettingsRead.state.view : null;
   const { settings: sharedSettings, update: updateSharedSettings } = useSettings();
 
   const automations = useAutomationManagementStore((state) => state.automations);
@@ -581,16 +563,6 @@ export function AutomationsSection({
         },
         nexAgentService,
       );
-      void reportAutomationCreateResult(platform, {
-        automationId: created?.automationId,
-        cronExpr: input.cronExpr ?? "",
-        templateId: view.mode === "create" ? view.draft?.templateId : undefined,
-        error: useAutomationManagementStore.getState().error,
-        modelFields: resolveAutomationSelectionTelemetry(
-          input.modelSelection,
-          providerSettingsView,
-        ),
-      });
       if (!created) {
         const createError = useAutomationManagementStore.getState().error;
         toast(
@@ -608,8 +580,6 @@ export function AutomationsSection({
       automationCreateLimitReached,
       createAutomation,
       intl,
-      platform,
-      providerSettingsView,
       showAutomationCreateLimitToast,
       updateAutomation,
       view,
@@ -664,12 +634,6 @@ export function AutomationsSection({
         automationId: automation.automationId,
         source,
       });
-      void reportAutomationActionClick(platform, {
-        action: "run_now",
-        source,
-        automation,
-        providerSettingsView,
-      });
       const result = await runAutomationNow(automation.automationId, nexAgentService);
       logger.debug("[automations] 立即运行交互结束", {
         automationId: automation.automationId,
@@ -715,19 +679,11 @@ export function AutomationsSection({
         toast(intl.formatMessage({ id: getAutomationRunNowToastId(result) }));
       }
     },
-    [
-      intl,
-      loadRuns,
-      onOpenSession,
-      platform,
-      providerSettingsView,
-      runAutomationNow,
-      nexAgentService,
-    ],
+    [intl, loadRuns, onOpenSession, runAutomationNow, nexAgentService],
   );
 
   const handleDelete = useCallback(
-    async (automation: NexAutomation, source: "list" | "editor" = "list") => {
+    async (automation: NexAutomation) => {
       const confirmed = await confirmDialog({
         presentation: "automation-confirmation",
         title: intl.formatMessage({ id: "automations.delete.title" }),
@@ -742,12 +698,6 @@ export function AutomationsSection({
         showKeyboardHints: false,
       });
       if (!confirmed) return;
-      void reportAutomationActionClick(platform, {
-        action: "delete",
-        source,
-        automation,
-        providerSettingsView,
-      });
       await deleteAutomation(automation.automationId, nexAgentService);
       const message = useAutomationManagementStore.getState().error;
       if (message) toast(intl.formatMessage({ id: getAutomationActionErrorToastId("delete") }));
@@ -758,7 +708,7 @@ export function AutomationsSection({
           : prev,
       );
     },
-    [confirmDialog, deleteAutomation, intl, platform, providerSettingsView, nexAgentService],
+    [confirmDialog, deleteAutomation, intl, nexAgentService],
   );
 
   // 创建/编辑整页(带 Settings/History tab)。
@@ -779,7 +729,7 @@ export function AutomationsSection({
           onSubmit={handleEditSubmit}
           onRunNow={(automation) => handleRunNow(automation, "editor")}
           onToggle={handleToggle}
-          onDelete={(automation) => handleDelete(automation, "editor")}
+          onDelete={handleDelete}
           runsEntry={view.mode === "edit" ? runsCache[view.automation.automationId] : undefined}
           onLoadRuns={() => {
             if (view.mode === "edit")

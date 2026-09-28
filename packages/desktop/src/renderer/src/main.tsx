@@ -1,5 +1,4 @@
 import { DatabaseStartupAdmission } from "./databaseStartupAdmission.js";
-import { initializeDesktopLocalTtft } from "./localTtftBootstrap.js";
 import { createRoot } from "react-dom/client";
 import { useEffect } from "react";
 import {
@@ -13,7 +12,6 @@ import {
   createRemoteWorkspaceDisconnectedError,
   playTaskNotificationSound,
   setStreamClientId,
-  setReactErrorArmsReporter,
 } from "@nex/ui";
 import "@nex/ui/styles.css";
 import { connectViaMessagePort, createMessagePortServiceConnection } from "@nex/client";
@@ -21,7 +19,6 @@ import {
   InternalChannels,
   databaseStartupStateSchema,
   type DatabaseStartupControl,
-  collectTelemetryRendererContext,
   parseLaunchMarks,
   LAUNCH_MARKS_QUERY_KEY,
   type LaunchMarks,
@@ -29,10 +26,8 @@ import {
 } from "@nex/shared";
 import type { Locale } from "@nex/shared";
 import type { IServiceAccessor } from "@nex/services";
-import { syncAppTelemetryContext } from "../appTelemetryBridge.js";
 import { createDesktopPlatform } from "./desktopPlatform.js";
 import { startPerformanceTimelineCleanup } from "./performanceTimelineCleanup.js";
-import { initializeDesktopUserActionTrace } from "./userActionTraceBootstrap.js";
 import { buildRemoteWorkspaceSessionServices } from "./remoteWorkspaceSessionServices.js";
 import {
   notifyRemoteWorkspaceServicePortReady,
@@ -141,11 +136,6 @@ let baseServicesForRemoteSessions: IServiceAccessor | null = null;
 const pendingRemoteWorkspaceServicePorts: RemoteWorkspaceServicePortRegistration[] = [];
 
 const desktopPlatform = createDesktopPlatform({ isLocalDevelopmentRuntime });
-initializeDesktopLocalTtft(desktopPlatform);
-initializeDesktopUserActionTrace({
-  platform: desktopPlatform,
-  isLocalDevelopmentRuntime,
-});
 
 /**
  * 等待 preload 通过 window.postMessage 转发 MessagePort。
@@ -248,8 +238,7 @@ function flushPendingRemoteWorkspaceServicePorts(): void {
 function StartupReadyNotifier() {
   useEffect(() => {
     // T5:React 首次 commit。供启动分阶段耗时计算 react_commit 段。
-    (window as Window & { __NEX_REACT_COMMIT_AT__?: number }).__NEX_REACT_COMMIT_AT__ =
-      Date.now();
+    (window as Window & { __NEX_REACT_COMMIT_AT__?: number }).__NEX_REACT_COMMIT_AT__ = Date.now();
     // HTML 启动壳的弹出动画结束时，React 首屏可能还没 commit，直接移除壳会露出空白。
     // 这里在 React commit 后通知 index.html，再由启动壳统一判断动画和 React ready 两个条件后退场。
     window.dispatchEvent(new Event("nex-react-startup-ready"));
@@ -308,20 +297,8 @@ function initializeBusinessRoot(port: MessagePort): void {
   flushPendingRemoteWorkspaceServicePorts();
   const settingService = supportsSettings ? services.settingService : undefined;
 
-  syncAppTelemetryContext({
-    bridge: {
-      syncTelemetryContext: (context) => window.nex.syncTelemetryContext(context),
-    },
-    createRendererContext: collectTelemetryRendererContext,
-  });
-
   // 初始化稳定的设备 ID，确保所有 hook 在首次渲染前就使用正确的值
   setStreamClientId(desktopPlatform.getDeviceId());
-
-  // React 错误边界捕获的异常不会冒泡到 window.onerror，RUM Browser SDK 默认收不到。
-  // 必须在 createRoot 之前注入 reporter：根级 AppErrorBoundary 的职责正是兜住 Root 自身
-  // 渲染崩溃，若依赖 Root 的 effect 注入，则 Root 首帧就崩时上报会丢失。
-  setReactErrorArmsReporter(desktopPlatform);
 
   appRoot?.render(
     <AppErrorBoundary isDesktop isMacDesktop={isMacDesktop} isWindowsDesktop={isWindowsDesktop}>

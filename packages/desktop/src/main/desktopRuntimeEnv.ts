@@ -15,13 +15,9 @@ import {
   NEX_VERSION,
   buildNexToolEnvPassthroughEnv,
   resolveRuntimeNexEndpointOrigin,
-  resolveZaiBusinessBaseUrl,
-  resolveZaiOAuthClientId,
-  resolveZaiOAuthOrigin,
   readProductEndpointEnv,
   pickProductEndpointEnv,
   normalizeDynamicWorkflowMode,
-  readNexAgentTelemetryEnv,
   sanitizeNexRuntimeEnv,
   type NexRuntimeEnv,
 } from "@nex/shared";
@@ -153,9 +149,8 @@ function resolveWorkspaceRootForEnvFiles(): string | null {
 
 export function loadHostProcessEnvFromLocalFiles(): Record<string, string> {
   if (isElectronAppPackaged()) {
-    // 安装包不内嵌 OTLP 端点或鉴权，避免 CI 凭据随产物公开；连接配置由运行时环境提供。
-    // 只保留打包身份元数据，缺少端点时不会启用上报。
-    return { NEX_TELEMETRY_RUNTIME_DISTRIBUTION: "packaged" };
+    // 安装包不内嵌任何上报端点或鉴权，避免 CI 凭据随产物公开。
+    return {};
   }
 
   const desktopRoot = resolve(import.meta.dirname, "../..");
@@ -278,9 +273,6 @@ function applySelectedNexEnvLinks(env: Record<string, string>): Record<string, s
     ...pickProductEndpointEnv(endpointEnv),
     ...env,
     NEX_BASE_URL: env.NEX_BASE_URL ?? resolveRuntimeNexEndpointOrigin(endpointEnv),
-    ZAI_OAUTH_ORIGIN: env.ZAI_OAUTH_ORIGIN ?? resolveZaiOAuthOrigin(endpointEnv),
-    ZAI_BUSINESS_BASE_URL: env.ZAI_BUSINESS_BASE_URL ?? resolveZaiBusinessBaseUrl(endpointEnv),
-    ZAI_OAUTH_CLIENT_ID: env.ZAI_OAUTH_CLIENT_ID ?? resolveZaiOAuthClientId(endpointEnv),
   };
 }
 
@@ -501,19 +493,6 @@ export function buildHostProcessEnv(hostProcessLocalEnv: Record<string, string>)
             )
           : undefined;
   const windowsAppInstallDir = resolveWindowsAppInstallDirForDataBaseDirGuard();
-  const agentTelemetryEnv = readNexAgentTelemetryEnv(rawInheritedEnv);
-  // Desktop 身份由 host 从凭据仓库和本机状态读取后可信注入；外部环境只能配置 OTLP 连接，
-  // 不能伪造 uid/device/runtime surface 或绕过本地 identity state 的隔离边界。
-  for (const key of [
-    "NEX_TELEMETRY_USER_ID",
-    "NEX_TELEMETRY_USER_ID_HASH",
-    "NEX_TELEMETRY_USER_SUBJECT_ID",
-    "NEX_TELEMETRY_IDENTITY_STATE",
-    "NEX_TELEMETRY_DEVICE_MID",
-    "NEX_TELEMETRY_RUNTIME_SURFACE",
-  ]) {
-    delete agentTelemetryEnv[key];
-  }
   const inheritedEnv = applySelectedNexEnvLinks({
     ...sanitizeNexRuntimeEnv(rawInheritedEnv),
     ...buildNexToolEnvPassthroughEnv(rawInheritedEnv),
@@ -535,14 +514,11 @@ export function buildHostProcessEnv(hostProcessLocalEnv: Record<string, string>)
 
   return {
     ...inheritedEnv,
-    // OTLP 凭据只定向传到 host；host 初始化 services 时会立即捕获并从 process.env 清除，
-    // 后续只在启动 Agent 时短暂注入，不会进入 Bash/MCP/tool env。
-    ...agentTelemetryEnv,
     // Nex 运行时不再使用 NODE_ENV；它会被用户 shell、包管理器和测试框架复用。
     // 这里显式下发 NEX_RUNTIME_ENV，并在继承环境里清掉 NODE_ENV，避免 host/agent/Bash 被污染。
     [NEX_RUNTIME_ENV_KEY]: resolveHostProcessNodeEnv(),
     // 显式注入编译期产品身份，保证主进程与 host 的身份语义一致；地址独立解析。
-    // inheritedEnv 从 .env 通用变量补齐 Nex/ZAI 链接，未覆盖时统一使用线上默认值。
+    // inheritedEnv 从 .env 通用变量补齐 Nex 链接，未覆盖时统一使用线上默认值。
     NEX_ENV,
     // Preview 与生产版共享任务、配置和凭据，但不同版本的 Helper 不能互相覆盖或触发降级保护。
     // 只隔离 computer-use 下的运行组件，不改写 NEX_HOME / NEX_DATA_BASE_DIR 业务数据根。

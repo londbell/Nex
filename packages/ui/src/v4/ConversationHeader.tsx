@@ -1,13 +1,8 @@
 import { memo } from "react";
-import {
-  TID_V4_PANE_WORKSPACE_BADGE,
-  TID_V4_SESSION_TITLE,
-  TID_V4_SPLIT_CLOSE,
-} from "@nex/shared";
+import { TID_V4_PANE_WORKSPACE_BADGE, TID_V4_SESSION_TITLE, TID_V4_SPLIT_CLOSE } from "@nex/shared";
 import { XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button.js";
 import { useNexIntl } from "@/i18n/IntlProvider.js";
-import { runUserAction } from "@/lib/userActionTelemetry.js";
 
 /** 跨 workspace pane 的归属徽标（未来跨 workspace session 的多路径徽标在此扩展）。 */
 export interface PaneWorkspaceBadge {
@@ -96,14 +91,7 @@ function ConversationHeaderImpl({ title, onClosePane, workspaceBadge }: Conversa
               variant="outline"
               size="icon-md"
               data-testid={TID_V4_SPLIT_CLOSE}
-              onClick={() =>
-                runUserAction({
-                  input: { featureId: "task.layout", action: "close_pane", trigger: "button" },
-                  operation: onClosePane,
-                  completed: { resultSource: "local_commit" },
-                  failureStage: "pane_close",
-                })
-              }
+              onClick={() => onClosePane()}
               title={intl.formatMessage({ id: "v4Pane.closePaneTitle" })}
               aria-label={intl.formatMessage({ id: "v4Pane.closePane" })}
               className="pointer-events-auto bg-[var(--color-popover)] shadow-md"
