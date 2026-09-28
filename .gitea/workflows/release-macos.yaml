@@ -45,7 +45,7 @@ jobs:
         run: pnpm bootstrap
 
       # packages/desktop build = runtime 资产准备 + tsup/vite 产物；
-      # bundle:desktop 才跑 electron-builder 产出 dist/*.dmg（本地已端到端验证）。
+      # bundle:desktop 才跑 electron-builder 产出 dist/*.dmg（本地已端到端验证，含 Developer ID 签名）。
       - name: Build desktop bundles
         run: pnpm --filter @nex/desktop build
 
@@ -54,6 +54,29 @@ jobs:
         env:
           NEX_ENABLE_MAC_SIGN: ${{ vars.NEX_ENABLE_MAC_SIGN }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+
+      # 两段式：electron-builder 只签名不公证（配置里 notarize: false），这里单独公证并 stapler。
+      - name: Notarize and staple
+        if: vars.NEX_ENABLE_MAC_SIGN == '1'
+        working-directory: packages/desktop
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for artifact in dist/*.dmg dist/*.zip; do
+            echo "[notarize] submit $artifact"
+            xcrun notarytool submit "$artifact" \
+              --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" \
+              --password "$APPLE_APP_SPECIFIC_PASSWORD" --wait
+          done
+          # staple 只支持 dmg/pkg/app；zip 由 Gatekeeper 在线校验公证记录。
+          for dmg in dist/*.dmg; do
+            xcrun stapler staple "$dmg"
+            xcrun stapler validate "$dmg"
+          done
+          spctl -a -vv -t exec dist/mac-arm64/*.app
 
       - name: Smoke check artifacts
         run: ls -lh packages/desktop/dist/*.dmg packages/desktop/dist/*.zip
