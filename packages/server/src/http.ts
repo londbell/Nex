@@ -224,17 +224,13 @@ function parseCookieHeader(header: string | undefined): Map<string, string> {
   return cookies;
 }
 
-function setLiteTokenCookie(c: Context, token: string): void {
-  c.header(
-    "Set-Cookie",
-    `${nexLiteTokenCookieName}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax`,
-  );
+function liteTokenCookieValue(token: string): string {
+  return `${nexLiteTokenCookieName}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax`;
 }
 
 function hasValidLiteToken(c: Context, token: string): boolean {
   const url = new URL(c.req.url);
   if (url.searchParams.get("token") === token) {
-    setLiteTokenCookie(c, token);
     return true;
   }
   return parseCookieHeader(c.req.header("cookie")).get(nexLiteTokenCookieName) === token;
@@ -312,16 +308,16 @@ export function createHttpServer(
   if (authToken) {
     app.use("*", async (c, next) => {
       const url = new URL(c.req.url);
-      // 任何路径带 ?token= 都种下 cookie（含静态首页）：`/?token=` 是文档化的
-      // 首次访问方式，页面本身不走鉴权，若不在此处种 cookie，后续 /api 与 /ws
-      // 的无 token 请求将全部 401，永远无法完成 bootstrap。
-      if (url.searchParams.get("token") === authToken) {
-        setLiteTokenCookie(c, authToken);
-      }
-      const pathname = url.pathname;
       const validToken = hasValidLiteToken(c, authToken);
-      if (!isTokenProtectedPath(pathname) || validToken) {
+      if (!isTokenProtectedPath(url.pathname) || validToken) {
         await next();
+        // next 之后再补 Set-Cookie：静态文件等直接返回 Response 的 handler
+        // 不会带上 middleware 里 c.header() 设置的头。任何路径带 ?token= 都
+        // 种 cookie（含静态首页）——`/?token=` 是文档化的首次访问方式，页面
+        // 本身不走鉴权，不在这里种 cookie，后续 /api 与 /ws 将永远 401。
+        if (url.searchParams.get("token") === authToken) {
+          c.res.headers.append("Set-Cookie", liteTokenCookieValue(authToken));
+        }
         return;
       }
       return c.json({ error: "Unauthorized" }, 401);
