@@ -21,10 +21,10 @@ COPY apps/nex-cli/pnpm-lock.yaml apps/nex-cli/pnpm-workspace.yaml apps/nex-cli/p
 COPY . .
 
 RUN pnpm install --frozen-lockfile
-RUN pnpm --dir apps/nex-cli install --frozen-lockfile
 
-# CLI（agent 运行时）→ server（HTTP 入口）→ web（静态资源）。
-RUN pnpm --dir apps/nex-cli run build
+# CLI 包们是根 workspace 成员；从根用拓扑序构建（apps/nex-cli 内跑 turbo 会因
+# link: 到根 packages 的越界路径报错）。CLI（agent 运行时）→ server（HTTP 入口）→ web（静态资源）。
+RUN pnpm -r --filter "@nex/cli^..." build
 RUN pnpm --filter @nex/server build
 RUN pnpm --filter @nex/web build
 
