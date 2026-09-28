@@ -65,6 +65,10 @@ jobs:
           NEX_ELECTRON_BUILDER_ARGS: "--publish always"
           NEX_ENABLE_MAC_SIGN: ${{ vars.NEX_ENABLE_MAC_SIGN }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          # GitHub-hosted runner 是全新 VM，钥匙串里没有证书；electron-builder 会用
+          # CSC_LINK(base64 p12) + CSC_KEY_PASSWORD 自建临时 keychain 完成导入签名。
+          CSC_LINK: ${{ secrets.APPLE_CERT_P12 }}
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
 
       # Two-step flow: electron-builder only signs (notarize: false in config);
       # notarize and staple the artifacts here.
