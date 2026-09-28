@@ -24,7 +24,7 @@ RUN pnpm install --frozen-lockfile
 
 # CLI 包们是根 workspace 成员；从根用拓扑序构建（apps/nex-cli 内跑 turbo 会因
 # link: 到根 packages 的越界路径报错）。CLI（agent 运行时）→ server（HTTP 入口）→ web（静态资源）。
-RUN pnpm -r --filter "@nex/cli^..." build
+RUN pnpm -r --filter "@nex/cli..." build
 RUN pnpm --filter @nex/server build
 RUN pnpm --filter @nex/web build
 
@@ -50,7 +50,7 @@ VOLUME ["/data", "/workspace"]
 EXPOSE 3030
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s \
-  CMD node -e "fetch('http://127.0.0.1:3030/api/server-info').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:3030/api/server-info?token='+process.env.NEX_SERVER_AUTH_TOKEN).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 CMD ["node", "packages/server/dist/entry-http.js"]
 
