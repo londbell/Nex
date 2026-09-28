@@ -151,16 +151,13 @@ export default defineConfig(({ mode }) => {
     ...env,
     NEX_ENV: nexEnv,
   });
-  const e2eCoverageEnabled =
-    env.NEX_E2E_COVERAGE === "1" || process.env.NEX_E2E_COVERAGE === "1";
+  const e2eCoverageEnabled = env.NEX_E2E_COVERAGE === "1" || process.env.NEX_E2E_COVERAGE === "1";
   const e2eStoreBridgeEnabled =
     env.VITE_NEX_E2E_STORE_BRIDGE === "1" || process.env.VITE_NEX_E2E_STORE_BRIDGE === "1";
   const nexEndpointOrigin = resolveNexEndpointOrigin({
     env: nexEnv,
     envBaseOrigin: env.NEX_BASE_URL ?? env.NEX_ENDPOINT_ORIGIN,
   });
-  const codingPlanWebviewOrigin =
-    env.VITE_CODING_PLAN_WEBVIEW_ORIGIN ?? process.env.VITE_CODING_PLAN_WEBVIEW_ORIGIN ?? "";
   const plugins = [
     ...(e2eCoverageEnabled ? [createE2EUIRendererCoveragePlugin(repoRoot)] : []),
     pdfJsCMapsPlugin(),
@@ -198,14 +195,8 @@ export default defineConfig(({ mode }) => {
       "import.meta.env.VITE_NEX_BASE_URL": JSON.stringify(nexEndpointOrigin),
       // 兼容旧 renderer 读取名；新代码统一读 VITE_NEX_BASE_URL。
       "import.meta.env.VITE_NEX_ENDPOINT_ORIGIN": JSON.stringify(nexEndpointOrigin),
-      "import.meta.env.VITE_CODING_PLAN_WEBVIEW_ORIGIN": JSON.stringify(codingPlanWebviewOrigin),
-      "import.meta.env.VITE_REWARDS_WEBVIEW_ORIGIN": JSON.stringify(
-        env.VITE_REWARDS_WEBVIEW_ORIGIN ?? process.env.VITE_REWARDS_WEBVIEW_ORIGIN ?? "",
-      ),
       // E2E store bridge 只能由 WDIO 专用变量打开，避免把 NEX_ENV=test 产品环境误当成测试运行态。
-      "import.meta.env.VITE_NEX_E2E_STORE_BRIDGE": JSON.stringify(
-        e2eStoreBridgeEnabled ? "1" : "",
-      ),
+      "import.meta.env.VITE_NEX_E2E_STORE_BRIDGE": JSON.stringify(e2eStoreBridgeEnabled ? "1" : ""),
     },
     // Electron 用 file:// 协议加载页面，资源路径必须是相对路径，否则会 ERR_FILE_NOT_FOUND
     base: "./",

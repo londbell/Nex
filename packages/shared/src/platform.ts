@@ -496,7 +496,6 @@ export const DesktopCommandIds = {
   SetNexEndpointCustom: "setNexEndpointCustom",
   ResetNexEndpoint: "resetNexEndpoint",
   ClearAllData: "clearAllData",
-  ClearCodingPlanWebviewStorage: "clearCodingPlanWebviewStorage",
   GetCuaOsSupport: "getCuaOsSupport",
 } as const;
 

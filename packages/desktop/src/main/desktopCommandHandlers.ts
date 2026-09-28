@@ -1,7 +1,7 @@
 /* eslint-disable max-lines -- 桌面命令分发需要共享窗口与平台上下文，集中维护更便于一致性 */
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { app, BrowserWindow, dialog, session, shell } from "electron";
+import { app, BrowserWindow, dialog, shell } from "electron";
 import type { MessageBoxOptions } from "electron";
 import {
   DEFAULT_NEX_ENDPOINT_ORIGIN,
@@ -41,7 +41,6 @@ export const HELP_TOGGLE_DEV_TOOLS_MENU_ID = "help.toggle-dev-tools";
 export const HELP_TOGGLE_NEX_STDIO_TAP_MENU_ID = "help.toggle-nex-stdio-tap";
 const NEX_ENDPOINT_PROMPT_WIDTH = 460;
 const NEX_ENDPOINT_PROMPT_HEIGHT = 210;
-const CODING_PLAN_WEBVIEW_PARTITION = "persist:nex-coding-plan";
 
 function resolveTargetWindow(senderWindow?: BrowserWindow | null) {
   if (senderWindow && !senderWindow.isDestroyed()) {
@@ -127,25 +126,6 @@ async function clearAllDataAndRelaunch(options: {
 
   app.relaunch();
   app.exit(0);
-}
-
-export async function clearCodingPlanWebviewStorage(options: {
-  logger: {
-    info: (...args: unknown[]) => void;
-    warn: (...args: unknown[]) => void;
-  };
-}) {
-  try {
-    // Coding Plan webview 使用独立持久 partition，默认窗口 session.clearStorageData()
-    // 不会覆盖它；退出登录/清理数据时必须显式清除，避免旧账号 token 被下一次官网首屏读到。
-    await session.fromPartition(CODING_PLAN_WEBVIEW_PARTITION).clearStorageData();
-    options.logger.info("[coding-plan-webview] cleared persistent partition storage");
-  } catch (error) {
-    options.logger.warn(
-      "[coding-plan-webview] failed to clear persistent partition storage:",
-      error,
-    );
-  }
 }
 
 async function fetchRemoteAppConfig(fetchRemoteConfig?: () => Promise<unknown>): Promise<unknown> {
@@ -445,20 +425,14 @@ function toggleNexStdioTapDevProxy(options: {
   });
 }
 
-function resolveChangelogUrl(
-  locale: Locale,
-  endpointOrigin = DEFAULT_NEX_ENDPOINT_ORIGIN,
-): string {
+function resolveChangelogUrl(locale: Locale, endpointOrigin = DEFAULT_NEX_ENDPOINT_ORIGIN): string {
   // 帮助菜单里的外链以前只有固定英文地址，切到中文界面后仍会落到英文 changelog。
   // 这里统一收口到主进程按当前应用语言分流，避免菜单模板里手写分支后续再出现多处不一致。
   const origin = buildNexEndpointUrls(endpointOrigin).origin;
   return locale === "zh-CN" ? `${origin}/cn/changelog` : `${origin}/en/changelog`;
 }
 
-export async function openChangelog(
-  locale: Locale,
-  endpointOrigin = DEFAULT_NEX_ENDPOINT_ORIGIN,
-) {
+export async function openChangelog(locale: Locale, endpointOrigin = DEFAULT_NEX_ENDPOINT_ORIGIN) {
   await shell.openExternal(resolveChangelogUrl(locale, endpointOrigin));
 }
 
@@ -673,14 +647,10 @@ export async function executeDesktopCommand(options: {
       });
       return;
     case DesktopCommandIds.ClearAllData:
-      await clearCodingPlanWebviewStorage({ logger: options.logger });
       await clearAllDataAndRelaunch({
         credentialsDir: options.credentialsDir,
         logger: options.logger,
       });
-      return;
-    case DesktopCommandIds.ClearCodingPlanWebviewStorage:
-      await clearCodingPlanWebviewStorage({ logger: options.logger });
       return;
     case DesktopCommandIds.GetCuaOsSupport:
       return resolveCuaOsSupport();

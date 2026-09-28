@@ -105,9 +105,7 @@ function createSharedDefines() {
     // Computer Use Helper build identity — helperInstaller 读它决定下载哪个 Helper bundle。
     // 缺失时 installer 抛 "Packaged Nex is missing its embedded Computer Use Helper build identity"。
     // CI 构建时通过 NEX_CUA_HELPER_BUILD_ID env 注入；dev 为空串走兜底（dev helper 不走下载）。
-    __NEX_CUA_HELPER_BUILD_ID__: JSON.stringify(
-      process.env.NEX_CUA_HELPER_BUILD_ID?.trim() ?? "",
-    ),
+    __NEX_CUA_HELPER_BUILD_ID__: JSON.stringify(process.env.NEX_CUA_HELPER_BUILD_ID?.trim() ?? ""),
     // 客户端只有一个 CDN 配置，与发布端 OSS 目标列表分离。
     __NEX_CDN_BASE_URL__: JSON.stringify(env.NEX_CDN_BASE_URL?.trim() || ""),
   };
@@ -183,7 +181,6 @@ export default defineConfig([
     name: "preload",
     entry: {
       "preload/embeddedBrowserJavaScriptDialog": "src/preload/embeddedBrowserJavaScriptDialog.ts",
-      "preload/codingPlanWebview": "src/preload/codingPlanWebview.ts",
       "preload/browserVideoRecorder": "src/preload/browserVideoRecorder.ts",
       "preload/index": "src/preload/index.ts",
       "preload/resourceManager": "src/preload/resourceManager.ts",
