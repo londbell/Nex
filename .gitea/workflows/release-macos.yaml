@@ -52,6 +52,9 @@ jobs:
       - name: Package DMG (electron-builder)
         run: pnpm bundle:desktop
         env:
+          # publish 配置已指向 GitHub Releases（客户端自动更新用）；Gitea 流水线不发 GitHub，
+          # 显式关 publish（electron-builder 否则强制要 GH_TOKEN），发布由下面的 API 步骤完成。
+          NEX_ELECTRON_BUILDER_ARGS: "--publish never"
           NEX_ENABLE_MAC_SIGN: ${{ vars.NEX_ENABLE_MAC_SIGN }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
 
