@@ -92,3 +92,27 @@ jobs:
             packages/desktop/dist/latest-mac.yml
           if-no-files-found: error
           retention-days: 30
+
+      # Gitea 不会因为推 tag 自动建 Release；走 API 创建并挂上安装包。
+      - name: Create Gitea release with assets
+        working-directory: packages/desktop
+        env:
+          GITEA_TOKEN: ${{ secrets.GITHUB_TOKEN || github.token }}
+          API: ${{ github.server_url }}/api/v1
+          REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          release=$(curl -sf -X POST -H "Authorization: token $GITEA_TOKEN" \
+            -H "Content-Type: application/json" "$API/repos/$REPO/releases" \
+            -d "{\"tag_name\":\"$TAG\",\"name\":\"Nex $TAG\",\"draft\":false,\"prerelease\":false}" \
+            || curl -sf -H "Authorization: token $GITEA_TOKEN" "$API/repos/$REPO/releases/tags/$TAG")
+          release_id=$(node -pe "JSON.parse(process.argv[1]).id" "$release")
+          echo "[release] id=$release_id tag=$TAG"
+          for f in dist/*.dmg dist/*.zip dist/latest-mac.yml; do
+            echo "[release] upload $f"
+            curl -sf -X POST -H "Authorization: token $GITEA_TOKEN" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary "@$f" \
+              "$API/repos/$REPO/releases/$release_id/assets?name=$(basename "$f")" > /dev/null
+          done
