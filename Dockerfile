@@ -44,7 +44,9 @@ ENV NODE_ENV=production \
     PORT=3030 \
     NEX_SERVER_HOST=0.0.0.0 \
     NEX_DATA_BASE_DIR=/data \
-    NEX_SERVER_WORKSPACE=/workspace
+    NEX_SERVER_WORKSPACE=/workspace \
+    # 让 server 能直接回 web 静态页（`/?token=` 种 cookie 依赖它）。
+    NEX_WEB_STATIC_ROOT=/app/packages/web/dist
 
 VOLUME ["/data", "/workspace"]
 EXPOSE 3030
