@@ -5,7 +5,7 @@
 </div>
 
 <p align="center">
-  简体中文 | <a href="README.md">简体中文</a>
+  English | <a href="README.md">简体中文</a>
 </p>
 
 Nex is an AI coding workbench with a desktop app, a browser UI, and a terminal agent.
@@ -16,10 +16,6 @@ Nex is an AI coding workbench with a desktop app, a browser UI, and a terminal a
 - Nex is a fork of [ZCode](https://github.com/zai-org/ZCode) **v3.14.3** (Apache-2.0), deeply customized:
   rebranding, telemetry and account-system removal, UI simplification, etc. See [CHANGELOG.md](CHANGELOG.md).
 - Credits to the original ZCode team. Apache-2.0 license and attribution: [LICENSE](LICENSE), [NOTICE.md](NOTICE.md).
-
-## Updates
-
-- 2026-9-23: Updated to Nex v3.14.3.
 
 ## Setup
 
