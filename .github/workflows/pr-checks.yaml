@@ -1,0 +1,77 @@
+# PR pipeline: install deps, then lint / typecheck / architecture check / unit tests.
+name: PR checks
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  # Skip the Electron binary download in CI; not needed for these checks.
+  ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # architecture:check --changed needs full history to diff against the baseline.
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm (pinned)
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.2 --activate
+          pnpm --version
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Architecture check
+        run: pnpm architecture:check -- --changed
+
+      - name: Unit tests (services)
+        run: pnpm --dir packages/services exec tsx --test test/*.test.ts
+
+      - name: Unit tests (ui)
+        run: pnpm --dir packages/ui exec tsx --tsconfig tsconfig.json --test test/*.test.ts
+
+  # apps/nex-cli is a separate pnpm workspace not covered by the root typecheck.
+  cli-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm (pinned)
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.2 --activate
+          pnpm --version
+
+      # The CLI workspace links root packages via link:; their deps come from the root install.
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --dir apps/nex-cli install --frozen-lockfile
+
+      - name: Typecheck CLI packages
+        run: pnpm --dir apps/nex-cli run typecheck

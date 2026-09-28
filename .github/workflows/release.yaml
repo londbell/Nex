@@ -1,0 +1,121 @@
+# Release pipeline: push a tag (vX.Y.Z) or dispatch manually to build the macOS
+# desktop bundles, sign/notarize when credentials are configured, and publish
+# everything to a GitHub Release.
+#
+# electron-builder publishes with GH_TOKEN and uploads the installers together
+# with latest-mac.yml, which the desktop auto-updater (github provider) consumes.
+#
+# Required repo variables/secrets (optional; unsigned build when unset):
+#   vars.NEX_ENABLE_MAC_SIGN == "1"
+#   secrets.APPLE_SIGNING_IDENTITY / APPLE_ID / APPLE_TEAM_ID /
+#   APPLE_APP_SPECIFIC_PASSWORD
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  NEX_ENV: production
+  # Do not let electron-builder auto-pick a signing identity from the local
+  # keychain; signing is controlled by NEX_ENABLE_MAC_SIGN.
+  CSC_IDENTITY_AUTO_DISCOVERY: "false"
+  ELECTRON_MIRROR: "https://npmmirror.com/mirrors/electron/"
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm (pinned)
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.2 --activate
+          pnpm --version
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Bootstrap
+        run: pnpm bootstrap
+
+      - name: Build desktop bundles
+        run: pnpm --filter @nex/desktop build
+
+      # electron-builder publishes installers + latest-mac.yml to the GitHub
+      # release (created on demand for the tag). GH_TOKEN is required by the
+      # github publish provider.
+      - name: Package and publish (electron-builder)
+        run: pnpm bundle:desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEX_ELECTRON_BUILDER_ARGS: "--publish always"
+          NEX_ENABLE_MAC_SIGN: ${{ vars.NEX_ENABLE_MAC_SIGN }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+
+      # Two-step flow: electron-builder only signs (notarize: false in config);
+      # notarize and staple the artifacts here.
+      - name: Notarize and staple
+        if: vars.NEX_ENABLE_MAC_SIGN == '1'
+        working-directory: packages/desktop
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for artifact in dist/*.dmg dist/*.zip; do
+            echo "[notarize] submit $artifact"
+            xcrun notarytool submit "$artifact" \
+              --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" \
+              --password "$APPLE_APP_SPECIFIC_PASSWORD" --wait
+          done
+          # staple supports dmg/pkg/app; zip archives are verified online by Gatekeeper.
+          for dmg in dist/*.dmg; do
+            xcrun stapler staple "$dmg"
+            xcrun stapler validate "$dmg"
+          done
+          spctl -a -vv -t exec dist/mac-arm64/*.app
+
+      # The notarized/stapled artifacts must replace the copies uploaded by
+      # electron-builder before it finished notarization.
+      - name: Refresh release assets after notarization
+        if: vars.NEX_ENABLE_MAC_SIGN == '1'
+        working-directory: packages/desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          for f in dist/*.dmg dist/*.zip dist/*.blockmap dist/latest-mac.yml; do
+            echo "[release] re-upload $(basename "$f")"
+            gh release upload "$tag" "$f" --clobber
+          done
+
+      - name: Smoke check artifacts
+        run: ls -lh packages/desktop/dist/*.dmg packages/desktop/dist/*.zip packages/desktop/dist/latest-mac.yml
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nex-macos-${{ github.ref_name }}
+          path: |
+            packages/desktop/dist/*.dmg
+            packages/desktop/dist/*.zip
+            packages/desktop/dist/*.blockmap
+            packages/desktop/dist/latest-mac.yml
+          if-no-files-found: error
+          retention-days: 30

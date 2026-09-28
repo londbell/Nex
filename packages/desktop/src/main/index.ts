@@ -61,7 +61,6 @@ import {
   DEFAULT_NEX_ENDPOINT_ORIGIN,
   DEFAULT_LOCALE,
   NEX_VERSION,
-  buildNexEndpointUrls,
   resolveNexEndpointOrigin,
   type UpdateStatePayload,
   HostMessageTypes,
@@ -76,7 +75,6 @@ import {
   initAutoUpdater,
   onAutoUpdaterStateChanged,
   refreshAutoUpdaterReleaseChannel,
-  resolveUpdateFeedSourceFromStartupConfig,
   syncAutoUpdaterStateToWindow,
   syncPostUpdateReleaseNotesToWindow,
   syncReadyUpdateToWindow,
@@ -1795,12 +1793,7 @@ app.whenReady().then(async () => {
     },
     settingService: mainSettingService,
     locale: currentApplicationLocale,
-    deviceMid,
     resolveEndpointOrigin: resolveCurrentNexEndpointOrigin,
-    updateFeedSource: resolveUpdateFeedSourceFromStartupConfig({
-      argv: process.argv,
-      env: process.env,
-    }),
   });
 
   if (process.platform === "darwin" || process.platform === "win32") {

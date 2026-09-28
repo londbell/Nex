@@ -19,13 +19,10 @@ import { app, BrowserWindow, ipcMain, Menu } from "electron";
 import pkg, { CancellationToken } from "electron-updater";
 import semver from "semver";
 import { logger } from "./logger.js";
-import { getElectronReleasePlatform, ManifestUpdateProvider } from "./manifestUpdateProvider.js";
 const { autoUpdater } = pkg;
 
 export const CHECK_FOR_UPDATE_MENU_ID = "check-for-update";
 const AUTO_UPDATE_POLL_INTERVAL_MS = 60 * 60 * 1000;
-const UPDATE_FEED_URL_ENV = "NEX_UPDATE_FEED_URL";
-const UPDATE_FEED_URL_SWITCH = "--nex-update-feed-url";
 const DEV_AUTO_UPDATE_ENV = "NEX_AUTO_UPDATE_DEV";
 const DEV_AUTO_UPDATE_SWITCH = "--nex-auto-update-dev";
 const DEV_AUTO_UPDATE_VERSION_ENV = "NEX_AUTO_UPDATE_DEV_VERSION";
@@ -91,7 +88,6 @@ type UpdateDownloadedInfoLike = {
   > | null;
 };
 
-type RuntimeUpdateFeedSource = { url: string };
 
 type AutoUpdaterMenuState = UpdateStatePayload;
 let menuState: AutoUpdaterMenuState = { kind: "idle", enabled: true };
@@ -113,8 +109,6 @@ interface InitAutoUpdaterOptions {
   onBeforeQuitAndInstall?: () => void | Promise<void>;
   settingService?: SettingServiceLike;
   locale?: Locale;
-  updateFeedSource?: RuntimeUpdateFeedSource;
-  deviceMid?: string;
   resolveEndpointOrigin?: () => string | Promise<string>;
 }
 
@@ -656,63 +650,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object";
 }
 
-function redactUpdateFeedUrlForLog(value: string): string {
-  try {
-    const url = new URL(value);
-    url.username = "";
-    url.password = "";
-    if (url.search) {
-      url.search = "?<redacted>";
-    }
-    url.hash = "";
-    return url.toString();
-  } catch {
-    return "<invalid-url>";
-  }
-}
 
-function readSwitchValue(argv: readonly string[], switchName: string): string | undefined {
-  const equalsPrefix = `${switchName}=`;
-  for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index];
-    if (!arg) {
-      continue;
-    }
-    if (arg.startsWith(equalsPrefix)) {
-      return arg.slice(equalsPrefix.length).trim() || undefined;
-    }
-    if (arg === switchName) {
-      const next = argv[index + 1];
-      if (next && !next.startsWith("--")) {
-        return next.trim() || undefined;
-      }
-      return undefined;
-    }
-  }
-  return undefined;
-}
 
-export function resolveUpdateFeedSourceFromStartupConfig(
-  options: {
-    argv?: readonly string[];
-    env?: Record<string, string | undefined>;
-  } = {},
-): RuntimeUpdateFeedSource | undefined {
-  const argv = options.argv ?? process.argv;
-  const env = options.env ?? process.env;
-  const feedUrl = readSwitchValue(argv, UPDATE_FEED_URL_SWITCH) ?? env[UPDATE_FEED_URL_ENV]?.trim();
-  if (!feedUrl) {
-    return undefined;
-  }
-  // 更新源覆盖仅供开发构建联调;正式包按 isPackaged 忽略,避免更新请求被环境变量/启动参数改道
-  if (app.isPackaged) {
-    logger.warn(
-      `[auto-update] ignore update feed override in packaged app: ${redactUpdateFeedUrlForLog(feedUrl)}`,
-    );
-    return undefined;
-  }
-  return { url: feedUrl };
-}
 
 async function resolveUpdateReleaseChannel(
   settingService: SettingServiceLike | undefined,
@@ -745,33 +684,22 @@ async function syncAutoUpdateCheckChannelFromSettings(
       `[auto-update] ${reason}: check channel ${availableUpdateChannel} -> ${nextChannel}`,
     );
   }
-  // 服务端 manifest provider 会在 checkForUpdates 内部读取 preview 设置。
-  // 如果 begin 阶段仍用默认 stable 作为 expected channel，冷启动 preview 结果会被误判为 stale。
+  // GitHub provider 下 preview 通道 = 接受 prerelease 版本。
+  autoUpdater.allowPrerelease = nextChannel === "preview";
   availableUpdateChannel = nextChannel;
   activeAutoUpdateCheckChannel = nextChannel;
 }
 
-function applyManifestUpdateProvider(options: InitAutoUpdaterOptions): void {
-  const manifestUrl = options.updateFeedSource?.url.trim();
+function applyGitHubUpdateProvider(options: InitAutoUpdaterOptions): void {
+  void options;
+  // GitHub Releases 是 Nex 唯一发布通道：electron-updater 内置 github provider
+  // 读取 release 资产里的 latest-mac.yml / latest.yml / latest-linux.yml。
   autoUpdater.setFeedURL({
-    provider: "custom",
-    updateProvider: ManifestUpdateProvider,
-    endpointOrigin: DEFAULT_NEX_ENDPOINT_ORIGIN,
-    ...(manifestUrl ? { manifestUrl } : {}),
-    releasePlatform: getElectronReleasePlatform(),
-    deviceMid: options.deviceMid,
-    resolveEndpointOrigin:
-      options.resolveEndpointOrigin ?? (() => resolveRuntimeNexEndpointOrigin(process.env)),
-    resolveReleaseChannel: async () => {
-      availableUpdateChannel = await resolveUpdateReleaseChannel(options.settingService);
-      return availableUpdateChannel;
-    },
+    provider: "github",
+    owner: "tylinux",
+    repo: "Nex",
   });
-  logger.info(
-    manifestUrl
-      ? `[auto-update] service manifest provider applied platform=${getElectronReleasePlatform()} manifestUrl=${redactUpdateFeedUrlForLog(manifestUrl)}`
-      : `[auto-update] service manifest provider applied platform=${getElectronReleasePlatform()}`,
-  );
+  logger.info("[auto-update] GitHub Releases update provider applied");
 }
 
 function pickFallbackReleaseNotesMarkdown(
@@ -1385,6 +1313,7 @@ export function refreshAutoUpdaterReleaseChannel(
   logger.info(
     `[auto-update] ${reason}: refresh manifest channel ${currentChannel} -> ${nextChannel}`,
   );
+  autoUpdater.allowPrerelease = nextChannel === "preview";
   availableUpdateChannel = nextChannel;
   clearAvailableUpdateState();
   setAutoUpdaterMenuState({ kind: "checking", enabled: false });
@@ -1504,7 +1433,7 @@ export async function initAutoUpdater(options: InitAutoUpdaterOptions = {}): Pro
   // 这里仅在 Windows 关闭“退出即自动安装”，要求用户显式点更新；其他平台保持原有行为，避免改动既有升级链路。
   autoUpdater.autoInstallOnAppQuit = process.platform !== "win32";
   autoUpdater.logger = logger;
-  applyManifestUpdateProvider(options);
+  applyGitHubUpdateProvider(options);
 
   const triggerCheckForUpdates = (reason: string) => {
     if (checkForUpdatesInFlight) {

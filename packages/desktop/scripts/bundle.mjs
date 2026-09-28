@@ -277,6 +277,7 @@ function parseArgs(argv) {
     skipBuild: process.env.NEX_SKIP_BUILD === "1",
     dryRun: false,
     positionals: [],
+    passthrough: [],
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -329,7 +330,9 @@ function parseArgs(argv) {
     }
 
     if (arg.startsWith("-")) {
-      throw new Error(`不支持的参数: ${arg}`);
+      // 未知参数原样透传给 electron-builder（如 --publish always）。
+      options.passthrough.push(arg);
+      continue;
     }
 
     options.positionals.push(arg);
@@ -691,6 +694,11 @@ function verifyPackagedRuntimeDependencies(os, arch) {
 
 async function main() {
   const { os, arch, skipPrepare, skipBuild, dryRun } = parseArgs(process.argv.slice(2));
+  // 额外参数经环境变量传入（pnpm 会吃掉一层 "--"，命令行透传不可靠），
+  // 例如 NEX_ELECTRON_BUILDER_ARGS="--publish always"。
+  const extraBuilderArgs = (process.env.NEX_ELECTRON_BUILDER_ARGS ?? "")
+    .split(/\s+/)
+    .filter(Boolean);
   const buildArgs = [
     "exec",
     "electron-builder",
@@ -698,6 +706,7 @@ async function main() {
     "electron-builder.config.js",
     osBuilderFlagMap[os],
     archBuilderFlagMap[arch],
+    ...extraBuilderArgs,
   ];
 
   console.log(`[bundle] target=${os}/${arch}`);
