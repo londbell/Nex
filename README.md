@@ -18,7 +18,18 @@ Nex 是 AI 编程工作台，提供桌面应用、浏览器界面和终端 Agent
   详见 [CHANGELOG.md](CHANGELOG.md)。
 - 感谢 ZCode 原团队的优秀工作，原项目的 Apache-2.0 许可与归属声明见 [LICENSE](LICENSE) 与 [NOTICE.md](NOTICE.md)。
 
-## 初始化
+## Docker（server + web）
+
+不带 Electron 的 server 与 web 分别构建为两个镜像，由 docker compose 编排：
+
+```bash
+NEX_SERVER_AUTH_TOKEN=$(openssl rand -hex 32) docker compose up -d --build
+```
+
+- web：`http://<host>:8080/?token=<同上>`（nginx 托管静态资源，/api 与 /ws 反代到 server）
+- server：容器内 3030 端口；`nex-data` 卷持久化 `~/.nex` 状态，`nex-workspace` 卷是默认工作区
+- 目标架构：构建机器是什么架构就出什么包（linux/amd64、linux/arm64 均可）
+
 ## 初始化
 
 准备 Git、Node.js **24.14.0** 和 pnpm **10.33.2**，版本以 [mise.toml](mise.toml) 为准。以下开发和打包命令均在仓库根目录执行。
