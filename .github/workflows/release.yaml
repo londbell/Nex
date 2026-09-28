@@ -46,6 +46,25 @@ jobs:
           corepack prepare pnpm@10.33.2 --activate
           pnpm --version
 
+      - name: Cache pnpm store
+        id: pnpm-cache
+        run: echo "dir=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.dir }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: Cache Electron / electron-builder binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/electron
+            ~/Library/Caches/electron-builder
+          key: ${{ runner.os }}-electron-${{ hashFiles('packages/desktop/package.json', 'pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-electron-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
