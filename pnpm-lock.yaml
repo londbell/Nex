@@ -149,16 +149,16 @@ importers:
         specifier: workspace:*
         version: link:../dynamic-workflow
       '@nex/model-option-map':
-        specifier: workspace:*
+        specifier: link:../../../../packages/model-option-map
         version: link:../../../../packages/model-option-map
       '@nex/nex-cua':
-        specifier: workspace:*
+        specifier: link:../../../../packages/nex-cua
         version: link:../../../../packages/nex-cua
       '@nex/provider':
-        specifier: workspace:*
+        specifier: link:../../../../packages/provider
         version: link:../../../../packages/provider
       '@nex/shared':
-        specifier: workspace:*
+        specifier: link:../../../../packages/shared
         version: link:../../../../packages/shared
       ai:
         specifier: 6.0.193
@@ -225,13 +225,13 @@ importers:
         specifier: workspace:*
         version: link:../i18n
       '@nex/provider':
-        specifier: workspace:*
+        specifier: link:../../../../packages/provider
         version: link:../../../../packages/provider
       '@nex/provider-node':
-        specifier: workspace:*
+        specifier: link:../../../../packages/provider-node
         version: link:../../../../packages/provider-node
       '@nex/shared':
-        specifier: workspace:*
+        specifier: link:../../../../packages/shared
         version: link:../../../../packages/shared
       diff:
         specifier: ^9.0.0
@@ -241,7 +241,7 @@ importers:
         version: 4.6.5
     devDependencies:
       '@nex/formal-proof':
-        specifier: workspace:*
+        specifier: link:../../../../packages/formal-proof
         version: link:../../../../packages/formal-proof
       '@types/node':
         specifier: ^24.0.0
@@ -268,7 +268,7 @@ importers:
         specifier: workspace:*
         version: link:../node-repl-host
       '@nex/shared':
-        specifier: workspace:*
+        specifier: link:../../../../packages/shared
         version: link:../../../../packages/shared
       zod:
         specifier: 4.6.5
@@ -317,10 +317,10 @@ importers:
         specifier: workspace:*
         version: link:../i18n
       '@nex/provider-node':
-        specifier: workspace:*
+        specifier: link:../../../../packages/provider-node
         version: link:../../../../packages/provider-node
       '@nex/shared':
-        specifier: workspace:*
+        specifier: link:../../../../packages/shared
         version: link:../../../../packages/shared
       '@nex/shared-types':
         specifier: workspace:*
@@ -338,7 +338,7 @@ importers:
   apps/nex-cli/packages/contracts:
     dependencies:
       '@nex/shared':
-        specifier: workspace:*
+        specifier: link:../../../../packages/shared
         version: link:../../../../packages/shared
       zod:
         specifier: ^3.24.0
@@ -360,10 +360,10 @@ importers:
         specifier: workspace:*
         version: link:../dynamic-workflow
       '@nex/nex-cua':
-        specifier: workspace:*
+        specifier: link:../../../../packages/nex-cua
         version: link:../../../../packages/nex-cua
       '@nex/shared':
-        specifier: workspace:*
+        specifier: link:../../../../packages/shared
         version: link:../../../../packages/shared
       '@nex/shared-types':
         specifier: workspace:*
@@ -478,10 +478,10 @@ importers:
         specifier: workspace:*
         version: link:../core
       '@nex/nex-cua':
-        specifier: workspace:*
+        specifier: link:../../../../packages/nex-cua
         version: link:../../../../packages/nex-cua
       '@nex/shared':
-        specifier: workspace:*
+        specifier: link:../../../../packages/shared
         version: link:../../../../packages/shared
       zod:
         specifier: ^4.4.3
@@ -527,7 +527,7 @@ importers:
         specifier: workspace:*
         version: link:../i18n
       '@nex/shared':
-        specifier: workspace:*
+        specifier: link:../../../../packages/shared
         version: link:../../../../packages/shared
       react:
         specifier: 19.2.7
