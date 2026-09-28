@@ -68,4 +68,17 @@ Docker：
 
 ## [Unreleased]
 
+### 移除默认插件市场
+
+- 不再预置任何插件市场：`DEFAULT_PLUGIN_MARKETPLACES` 清空，商店页不再展示 ZCode 官方 CDN 源
+  （该 CDN 无 nex 分片，路径 404）；添加市场源能力保留（git / GitHub / URL / 本地路径，兼容
+  `.claude-plugin/marketplace.json` 格式）
+- `ensureDefaultPluginMarketplaces` 迁移：存量安装 `known_marketplaces.json` 里残留的官方市场
+  预置记录（`nex-plugins-official` 及改名前的 `zcode-plugins-official`）在读取时一并清除
+- 移除商店页「目录自动刷新」（`officialMarketplaceAutoRefresh`）：该机制仅服务于已移除的官方 CDN 市场
+- 官方插件 id 全面统一为 `@nex-plugins-official`：`DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS`、
+  `NEX_CUA_OFFICIAL_PLUGIN_ID`、`CANONICAL_CUA_PLUGIN_ID`、UI 插件引用（推荐语/图标/内置技能 i18n）
+  共 80 余处；旧 `zcode-plugins-official` id 保留为兼容别名，旧配置读取时自动归一
+- 内置能力（node-repl-host、browser-use）不受影响：seed 机制与市场列表无关，仍在首启时本地 seed
+
 （暂无）

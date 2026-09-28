@@ -171,16 +171,21 @@ const pluginsSchema = z.object({
   suppressedBuiltins: z.array(z.string().min(1)).optional(),
 });
 
-export const LEGACY_CUA_PLUGIN_ID = "nex-cua@zcode-plugins-official";
-export const CANONICAL_CUA_PLUGIN_ID = "computer-use@zcode-plugins-official";
+// CUA 插件 id 迁移链：改名前的两个旧 id（上游原始 id、fork 早期 rename 残留）都归一到
+// 现行 canonical id。旧值只作为兼容别名，不再被新配置写入。
+export const LEGACY_CUA_PLUGIN_IDS: ReadonlySet<string> = new Set([
+  "nex-cua@zcode-plugins-official",
+  "computer-use@zcode-plugins-official",
+]);
+export const CANONICAL_CUA_PLUGIN_ID = "computer-use@nex-plugins-official";
 
 export function canonicalizePluginId(pluginId: string): string {
-  return pluginId === LEGACY_CUA_PLUGIN_ID ? CANONICAL_CUA_PLUGIN_ID : pluginId;
+  return LEGACY_CUA_PLUGIN_IDS.has(pluginId) ? CANONICAL_CUA_PLUGIN_ID : pluginId;
 }
 
 export function pluginIdAliases(pluginId: string): readonly string[] {
   return canonicalizePluginId(pluginId) === CANONICAL_CUA_PLUGIN_ID
-    ? [CANONICAL_CUA_PLUGIN_ID, LEGACY_CUA_PLUGIN_ID]
+    ? [CANONICAL_CUA_PLUGIN_ID, ...LEGACY_CUA_PLUGIN_IDS]
     : [pluginId];
 }
 
@@ -428,15 +433,17 @@ function normalizePluginConfig(
 ): NonNullable<RuntimeConfigPatch["plugins"]> {
   if (!plugins) return {};
   const enabledPlugins = plugins.enabledPlugins ? { ...plugins.enabledPlugins } : undefined;
-  if (enabledPlugins?.[LEGACY_CUA_PLUGIN_ID] !== undefined) {
-    if (enabledPlugins[CANONICAL_CUA_PLUGIN_ID] === undefined) {
-      enabledPlugins[CANONICAL_CUA_PLUGIN_ID] = enabledPlugins[LEGACY_CUA_PLUGIN_ID];
+  for (const legacyId of LEGACY_CUA_PLUGIN_IDS) {
+    if (enabledPlugins?.[legacyId] !== undefined) {
+      if (enabledPlugins[CANONICAL_CUA_PLUGIN_ID] === undefined) {
+        enabledPlugins[CANONICAL_CUA_PLUGIN_ID] = enabledPlugins[legacyId];
+      }
+      delete enabledPlugins[legacyId];
     }
-    delete enabledPlugins[LEGACY_CUA_PLUGIN_ID];
   }
   const suppressedBuiltins = plugins.suppressedBuiltins
     ? plugins.suppressedBuiltins.reduce<string[]>((ids, id) => {
-        const canonicalId = id === LEGACY_CUA_PLUGIN_ID ? CANONICAL_CUA_PLUGIN_ID : id;
+        const canonicalId = LEGACY_CUA_PLUGIN_IDS.has(id) ? CANONICAL_CUA_PLUGIN_ID : id;
         if (canonicalId === CANONICAL_CUA_PLUGIN_ID && ids.includes(CANONICAL_CUA_PLUGIN_ID)) {
           return ids;
         }
@@ -445,11 +452,13 @@ function normalizePluginConfig(
       }, [])
     : undefined;
   const options = plugins.options ? { ...plugins.options } : undefined;
-  if (options?.[LEGACY_CUA_PLUGIN_ID] !== undefined) {
-    if (options[CANONICAL_CUA_PLUGIN_ID] === undefined) {
-      options[CANONICAL_CUA_PLUGIN_ID] = options[LEGACY_CUA_PLUGIN_ID];
+  for (const legacyId of LEGACY_CUA_PLUGIN_IDS) {
+    if (options?.[legacyId] !== undefined) {
+      if (options[CANONICAL_CUA_PLUGIN_ID] === undefined) {
+        options[CANONICAL_CUA_PLUGIN_ID] = options[legacyId];
+      }
+      delete options[legacyId];
     }
-    delete options[LEGACY_CUA_PLUGIN_ID];
   }
   return {
     ...plugins,
