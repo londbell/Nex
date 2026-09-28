@@ -669,15 +669,12 @@ export default {
     gatekeeperAssess: false,
     entitlements: "build/entitlements.mac.plist",
     entitlementsInherit: "build/entitlements.mac.inherit.plist",
-    // runtime 可执行文件已在打包前的独立预签名阶段完成签名，
-    // electron-builder 在签主 app 时若继续深度扫描这些目录，会显著拉长 macOS codesign 时长。
-    // 这里按“任意前缀 + Contents/Resources”匹配绝对路径，避免 ^Contents/... 在 CI 中无法命中。
-    // 命中后可跳过已预签名目录的重复签名/遍历，同时保留主 app 与框架签名。
-    // CUA Helper 在独立 job 中已完成 Developer ID 签名和 notarization staple；
-    // electron-builder 若再次签名嵌套 Helper 会改变 CDHash，使最终用户包中的 staple 失效。
+    // CUA Helper（Resources/glm）在独立 job 中已完成 Developer ID 签名和 notarization staple；
+    // electron-builder 若再次签名嵌套 Helper 会改变 CDHash，使最终用户包中的 staple 失效，故跳过。
+    // 注意：Resources/tools（bfs/rg/ugrep 原生搜索工具）没有预签名环节，必须留给 electron-builder 签名，
+    // 否则 notarytool 会以 "not signed with a valid Developer ID certificate" 判 Invalid。
     signIgnore: [
       "[/\\\\]Contents[/\\\\]Resources[/\\\\]glm([/\\\\]|$)",
-      "[/\\\\]Contents[/\\\\]Resources[/\\\\]tools([/\\\\]|$)",
     ],
   },
   win: {
