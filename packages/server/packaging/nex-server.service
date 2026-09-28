@@ -1,0 +1,36 @@
+# Nex server systemd 服务单元（Linux）。
+# 安装：见同目录 install.sh，或手动：
+#   sudo cp nex-server.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now nex-server
+#
+# 默认布局：
+#   二进制  /usr/local/bin/nex-server
+#   数据    /var/lib/nex-server（会话/设置/凭据/agent bundle 释放目录）
+#   配置    /etc/nex-server/env（NEX_SERVER_AUTH_TOKEN 等环境变量）
+[Unit]
+Description=Nex Server (single binary)
+Documentation=https://github.com/tylinux/Nex
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nex-server
+Group=nex-server
+EnvironmentFile=/etc/nex-server/env
+Environment=NEX_SERVER_HOST=0.0.0.0
+Environment=NEX_SERVER_PORT=3030
+Environment=NEX_DATA_BASE_DIR=/var/lib/nex-server
+ExecStart=/usr/local/bin/nex-server
+Restart=on-failure
+RestartSec=3
+# 长驻 WS 会话被杀时给 agent 子进程一点收尾时间。
+KillMode=mixed
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/nex-server
+
+[Install]
+WantedBy=multi-user.target

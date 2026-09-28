@@ -1,0 +1,92 @@
+# Nex server 单二进制发布：v* tag / 手动触发时构建三个平台的 SEA 二进制
+# 并上传到 GitHub Release（draft 时随 macOS release 流水线共用同一 release）。
+#
+# 产物（tag v1.0.3 为例）：
+#   nex-server-darwin-arm64.tar.gz
+#   nex-server-linux-x64.tar.gz
+#   nex-server-linux-arm64.tar.gz
+# 每个包内含二进制 + packaging/（install.sh、systemd unit、launchd plist）。
+#
+# 本机 Node 版本必须与 third-party/runtime/sources.json 登记的 license 条目一致
+# （当前锚定 24.14.0），CI 用 setup-node 固定。
+name: Server binaries (SEA)
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: "24.14.0"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest, target: darwin-arm64 }
+          - { os: ubuntu-latest, target: linux-x64 }
+          - { os: ubuntu-latest, target: linux-arm64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Build workspace packages and agent bundle
+        run: |
+          pnpm typecheck
+          pnpm -r --filter "@nex/cli..." build
+
+      - name: Build SEA binary (${{ matrix.target }})
+        working-directory: packages/server
+        run: node scripts/build-sea.mjs --target ${{ matrix.target }}
+
+      - name: Package tarball
+        working-directory: packages/server/dist/sea
+        run: |
+          mkdir -p bundle/packaging
+          cp nex-server-${{ matrix.target }} bundle/
+          cp -r ../../../packaging/. bundle/packaging/
+          tar -czf nex-server-${{ matrix.target }}.tar.gz -C bundle .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nex-server-${{ matrix.target }}
+          path: packages/server/dist/sea/nex-server-${{ matrix.target }}.tar.gz
+          retention-days: 7
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: dist
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/nex-server-*.tar.gz
