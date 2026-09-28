@@ -1,0 +1,69 @@
+# PR 检查流水线：安装依赖后跑 lint / typecheck / 架构检查 / 单测。
+# 运行器：任一 Linux docker runner（act_runner 的 ubuntu-latest 标签映射到带
+# Node 24 的镜像即可，例如 node:24-bookworm 或 catthehacker/ubuntu:full-24.04）。
+name: PR checks
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  # CI 里不需要 Electron 二进制，跳过下载缩短 install。
+  ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # architecture:check --changed 需要完整历史来对比基线。
+          fetch-depth: 0
+
+      - name: Enable pnpm (pinned)
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.2 --activate
+          pnpm --version
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Architecture check
+        run: pnpm architecture:check -- --changed
+
+      - name: Unit tests (services)
+        run: pnpm --dir packages/services exec tsx --test test/*.test.ts
+
+      - name: Unit tests (ui)
+        run: pnpm --dir packages/ui exec tsx --tsconfig tsconfig.json --test test/*.test.ts
+
+  # apps/nex-cli 是独立 pnpm workspace，不在根 typecheck 覆盖范围内，必须单独检查。
+  cli-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable pnpm (pinned)
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.2 --activate
+          pnpm --version
+
+      # 子 workspace 对根 packages/* 的依赖是 link: 协议，被链接包的依赖由根安装提供。
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --dir apps/nex-cli install --frozen-lockfile
+
+      - name: Typecheck CLI packages
+        run: pnpm --dir apps/nex-cli run typecheck

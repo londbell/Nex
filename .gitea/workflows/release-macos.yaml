@@ -1,0 +1,71 @@
+# macOS 桌面包发布流水线：打 tag（如 v1.0.0）或手动触发，产出未签名 DMG/ZIP。
+#
+# 运行器要求：macOS host runner（act_runner 以 host 模式注册，labels 里带 `macos`）。
+# 需要签名时在 runner/host 上配置密钥链，并设置 secret：
+#   NEX_ENABLE_MAC_SIGN=1 + APPLE_SIGNING_IDENTITY（Developer ID Application 全称）
+# 不配置则产出未签名包（electron-builder identity=null，见 electron-builder.config.js）。
+name: Release macOS DMG
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  NEX_ENV: production
+  # 不要让 electron-builder 从本机钥匙串自动捡签名身份；签名与否由 NEX_ENABLE_MAC_SIGN 决定。
+  CSC_IDENTITY_AUTO_DISCOVERY: "false"
+  # Electron 下载走国内镜像。
+  ELECTRON_MIRROR: "https://npmmirror.com/mirrors/electron/"
+
+jobs:
+  build-dmg:
+    runs-on: macos
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm (pinned)
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.2 --activate
+          pnpm --version
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Bootstrap
+        run: pnpm bootstrap
+
+      # packages/desktop build = runtime 资产准备 + tsup/vite 产物；
+      # bundle:desktop 才跑 electron-builder 产出 dist/*.dmg（本地已端到端验证）。
+      - name: Build desktop bundles
+        run: pnpm --filter @nex/desktop build
+
+      - name: Package DMG (electron-builder)
+        run: pnpm bundle:desktop
+        env:
+          NEX_ENABLE_MAC_SIGN: ${{ vars.NEX_ENABLE_MAC_SIGN }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+
+      - name: Smoke check artifacts
+        run: ls -lh packages/desktop/dist/*.dmg packages/desktop/dist/*.zip
+
+      - name: Upload DMG artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nex-macos-${{ github.ref_name }}
+          path: |
+            packages/desktop/dist/*.dmg
+            packages/desktop/dist/*.zip
+            packages/desktop/dist/*.blockmap
+            packages/desktop/dist/latest-mac.yml
+          if-no-files-found: error
+          retention-days: 30
