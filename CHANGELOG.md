@@ -5,6 +5,27 @@ Nex 的所有重要改动记录在本文件中。
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.0.2] - 2026-09-28
+
+构建与发布：
+
+- Gitea Actions：PR 检查流水线（linux-amd64 runner）
+- GitHub Actions：PR 检查、macOS DMG 发布（Developer ID 签名 + 公证 + staple）、
+  server/web Docker 镜像发布到 GHCR
+- 桌面端自动更新切换为 GitHub Releases（electron-updater github provider）
+- Gitea 仓库通过 push mirror 自动同步 main 与 tags 到 GitHub
+
+Docker：
+
+- 新增根 Dockerfile（server / web 双镜像）与 docker-compose.yml，compose 强制
+  NEX_SERVER_AUTH_TOKEN 鉴权
+
+修复：
+
+- CLI 跨 workspace 依赖改用 link: 协议，pnpm install 恢复正常
+- electron-builder 签名覆盖内嵌搜索工具（bfs/ripgrep/ugrep），修复公证被拒
+- 桌面端更新为新版 DMG 安装器背景图
+
 ## [1.0.0] - 2026-09-27
 
 基于 [ZCode](https://github.com/zai-org/ZCode) v3.14.3（Apache-2.0）的首次独立发行版本。
