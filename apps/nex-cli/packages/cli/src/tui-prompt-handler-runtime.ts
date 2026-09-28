@@ -12,15 +12,13 @@ type ProviderRegistryRuntime = Awaited<
 >;
 
 // 跨 App 替换（/new、/resume、/fork）复用的进程级句柄：整个 Prompt Handler 生命期只起一份，
-// 只在终态 close 时对称 shutdown。之前是 createTuiSubmitPrompt 里的三个 let 闭包变量。
+// 只在终态 close 时对称 dispose。
 interface TuiProcessRuntimeState {
   providerRegistryRuntimePromise: Promise<ProviderRegistryRuntime> | undefined;
-  shutdownTelemetry: (() => Promise<void>) | undefined;
 }
 
 export const createTuiProcessRuntimeState = (): TuiProcessRuntimeState => ({
   providerRegistryRuntimePromise: undefined,
-  shutdownTelemetry: undefined,
 });
 
 // 返回值类型交给推断：原地 createApp 里这几个都是推断出来的局部变量，手写接口反而会把
@@ -48,18 +46,7 @@ export async function prepareTuiAppRuntime(
   const bootstrapModule = deps.createNexApp ? undefined : await loadBootstrapModule();
   const createAppFactory = deps.createNexApp ?? bootstrapModule?.createNexApp;
   if (!createAppFactory) throw new Error("Nex app factory is unavailable.");
-  const prepareTelemetry =
-    deps.prepareNexTelemetryEnv ?? bootstrapModule?.prepareNexTelemetryEnv;
-  if (prepareTelemetry) {
-    state.shutdownTelemetry =
-      deps.shutdownNexTelemetry ?? bootstrapModule?.shutdownNexTelemetry;
-  }
-  const appEnv = prepareTelemetry
-    ? await prepareTelemetry(env, {
-        cliVersion: version,
-        productVersion: env.NEX_APP_VERSION,
-      })
-    : env;
+  const appEnv = env;
   const startProviderRegistryRuntime =
     deps.startProcessProviderRegistryRuntime ??
     bootstrapModule?.startProcessProviderRegistryRuntime;

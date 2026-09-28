@@ -26,9 +26,7 @@ import type {
   resolveLatestSession,
   ResolveLatestSessionOptions,
   RunNexProtocolAgentOptions,
-  prepareNexTelemetryEnv,
   startProcessProviderRegistryRuntime,
-  shutdownNexTelemetry,
   NexAppOptions,
 } from "@nex/bootstrap";
 import type { CliEnv, DotenvLoadResult, LoadCliDotenvOptions } from "./env.js";
@@ -67,7 +65,6 @@ export interface RunDependencies extends PluginsCommandOverrides {
     options: InspectNexCustomCommandOptions,
   ) => ReturnType<typeof inspectNexCustomCommand>;
   loadDotenv?: (options?: LoadCliDotenvOptions) => DotenvLoadResult;
-  prepareNexTelemetryEnv?: typeof prepareNexTelemetryEnv;
   projectConfigPath?: string;
   listSessions?: (options: ListNexSessionsOptions) => ReturnType<typeof listNexSessions>;
   listCustomCommands?: (
@@ -95,7 +92,6 @@ export interface RunDependencies extends PluginsCommandOverrides {
   shutdownCleanupTimeoutMs?: number;
   shutdownProcess?: CliShutdownProcess;
   startProcessProviderRegistryRuntime?: typeof startProcessProviderRegistryRuntime;
-  shutdownNexTelemetry?: typeof shutdownNexTelemetry;
 }
 
 export type CliPermissionMode = "build" | "plan" | "edit" | "yolo";

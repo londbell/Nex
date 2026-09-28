@@ -6,10 +6,7 @@ import { createNodeWebFetchHttpClientAdapter } from "@nex/adapters/http";
 import { createNodeSkillAdapter } from "@nex/adapters/skills";
 import type { ConfigResult } from "@nex/adapters/config";
 import { createInMemorySessionEventStore } from "@nex/adapters/storage";
-import {
-  createNodeWorkflowDefinitionStore,
-  createNodeWorkflowStore,
-} from "@nex/adapters/workflow";
+import { createNodeWorkflowDefinitionStore, createNodeWorkflowStore } from "@nex/adapters/workflow";
 import {
   AgentRuntime,
   ExpertWorkflowRuntime,
@@ -43,7 +40,7 @@ import type { PrepareUserExecutionBoundary, NexAppOptions } from "./types.js";
 import { createWorkflowMethods, type WorkflowFacade } from "./workflow-methods.js";
 
 interface CreateWorkflowFacadeDeps {
-  agentTelemetry: AgentExecutionTelemetryPort;
+  agentTelemetry?: AgentExecutionTelemetryPort;
   appOptions: NexAppOptions;
   appVersion: string;
   artifactStore?: ToolArtifactStorePort;
@@ -293,7 +290,7 @@ function createWorkflowChildRuntime(
     },
     {
       agentTelemetry: deps.agentTelemetry,
-      agentTelemetryCausation: deps.agentTelemetry.captureCausation(),
+      agentTelemetryCausation: deps.agentTelemetry?.captureCausation(),
       // Workflow 在父工具返回后独立调度，不能伪装成父 Span 的同步 Child。
       agentTelemetryCausationMode: "linked_root",
       eventStore: createInMemorySessionEventStore(),

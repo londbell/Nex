@@ -5,10 +5,7 @@ import {
 } from "@nex/adapters/storage";
 import { createNodeLoggerFactory } from "@nex/adapters/logging";
 import { createConfig, resolvePath } from "@nex/adapters/config";
-import {
-  createNodeExecutionAdapter,
-  resolveEffectiveBashShellSelection,
-} from "@nex/adapters/exec";
+import { createNodeExecutionAdapter, resolveEffectiveBashShellSelection } from "@nex/adapters/exec";
 import { createNodeFileSystemAdapter } from "@nex/adapters/fs";
 import { createNodeWebFetchHttpClientAdapter } from "@nex/adapters/http";
 import { createJimpImageProcessorAdapter } from "@nex/adapters/image";
@@ -24,7 +21,6 @@ import {
   type AmendWorkflowRunSettingsInput,
   type ResumeSessionResult,
 } from "@nex/core";
-import { createModelTelemetry } from "@nex/telemetry";
 import {
   createRootTraceContext,
   traceContextToLogContext,
@@ -35,10 +31,7 @@ import {
   type MessageId,
 } from "@nex/contracts";
 import { isRemoteWorkspaceIdentity, resolveNexRuntimeEnv } from "@nex/shared";
-import {
-  NEX_ATTACHMENT_FAULT_CODES,
-  NexAttachmentFaultError,
-} from "@nex/shared/nex-protocol-v4";
+import { NEX_ATTACHMENT_FAULT_CODES, NexAttachmentFaultError } from "@nex/shared/nex-protocol-v4";
 
 import { createModelAdapter } from "../model-factory.js";
 import { StartupTimer, startupNow } from "../startup-logging.js";
@@ -188,10 +181,6 @@ export async function createNexApp(options: NexAppOptions): Promise<NexApp> {
   const modelLogger = loggerFactory.createLogger("nex").child({
     ...traceContextToLogContext(traceContext),
     module: "adapters.model",
-  });
-  const modelTelemetry = createModelTelemetry({
-    owner: options.telemetryOwner,
-    sessionId,
   });
   let nodeReplBrowserBroker: NodeReplBrowserBroker | undefined;
   let ownedNodeReplBrowserBroker: NodeReplBrowserBroker | undefined;
@@ -360,9 +349,7 @@ export async function createNexApp(options: NexAppOptions): Promise<NexApp> {
       options.sessionMailboxPort ??
       (messageEnabled
         ? createNodeSessionMailboxAdapter({
-            rootDir: resolvePath(
-              (options.env ?? process.env).NEX_MAILBOX_ROOT ?? "~/.nex/mailbox",
-            ),
+            rootDir: resolvePath((options.env ?? process.env).NEX_MAILBOX_ROOT ?? "~/.nex/mailbox"),
           })
         : undefined);
     markStorageAdaptersInitialized({
@@ -533,12 +520,8 @@ export async function createNexApp(options: NexAppOptions): Promise<NexApp> {
         modelIoDir,
         modelIoFullRetentionEnabled: options.modelIoFullRetentionEnabled,
         executionConfig: modelExecutionConfig,
-        statusSink: modelTelemetry.statusSink,
         streamIdleTimeoutMs: configResult.config.modelStream.idleTimeoutMs,
       });
-    if (options.modelAdapter && modelTelemetry.statusSink) {
-      modelAdapter.addStatusSink(modelTelemetry.statusSink);
-    }
     // 进程级并发治理器：run service 拿它的窄端口给
     // driver（每个 actor runtime 一个请求级准入端口）；主 runtime 挂它的 observer（下面 deps）——
     // 不排队、不看冷却，但计入在飞并喂信号。进程级单例——配额本就在账号上，不按会话分。
@@ -555,7 +538,6 @@ export async function createNexApp(options: NexAppOptions): Promise<NexApp> {
     // 新建的 Model 才看得到，child 不各自冻结一份。
     const modelFactory = providerModelRuntime.modelFactory;
     const scriptWorkflowFacade = createScriptWorkflowBridge({
-      agentTelemetry: modelTelemetry.agentExecution,
       appOptions: options,
       appVersion,
       artifactStore,
@@ -625,7 +607,6 @@ export async function createNexApp(options: NexAppOptions): Promise<NexApp> {
                   ).configOverrides,
                 },
                 deps: {
-                  agentTelemetry: modelTelemetry.agentExecution,
                   appOptions: options,
                   appVersion,
                   artifactStore,
@@ -724,7 +705,6 @@ export async function createNexApp(options: NexAppOptions): Promise<NexApp> {
       currentSelection: () => getRuntime().getSessionModelSelection(),
     });
     runtime = new AgentRuntime(sessionId, runtimeConfig, {
-      agentTelemetry: modelTelemetry.agentExecution,
       // 主代理的模型请求过治理器的 observer：立即放行，但让治理器看见它的 429 / 成功。
       modelRequestAdmission: workflowConcurrencyGovernor.observer(),
       eventStore: options.eventStore ?? createInMemorySessionEventStore(),
@@ -822,7 +802,6 @@ export async function createNexApp(options: NexAppOptions): Promise<NexApp> {
       traceContext,
     });
     const workflowFacade = createWorkflowFacade({
-      agentTelemetry: modelTelemetry.agentExecution,
       appOptions: options,
       appVersion,
       artifactStore,
@@ -1110,11 +1089,7 @@ export async function createNexApp(options: NexAppOptions): Promise<NexApp> {
         try {
           await closeSession?.();
         } finally {
-          try {
-            providerModelRuntime?.dispose();
-          } finally {
-            await modelTelemetry.shutdown();
-          }
+          providerModelRuntime?.dispose();
         }
       },
       ...workflowFacade,
@@ -1278,7 +1253,6 @@ export async function createNexApp(options: NexAppOptions): Promise<NexApp> {
     };
   } catch (error) {
     providerModelRuntime?.dispose();
-    void modelTelemetry.shutdown().catch(() => undefined);
     void ownedNodeReplBrowserBroker?.close();
     startupTimer.fail("Nex app startup failed", error, {
       context: { sessionId, workingDirectory },
