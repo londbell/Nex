@@ -1,6 +1,6 @@
 # macOS 桌面包发布流水线：打 tag（如 v1.0.0）或手动触发，产出未签名 DMG/ZIP。
 #
-# 运行器要求：macOS host runner（act_runner 以 host 模式注册，labels 里带 `macos`）。
+# 运行器要求：macos-arm64（host 模式 act_runner，Apple Silicon）。
 # 需要签名时在 runner/host 上配置密钥链，并设置 secret：
 #   NEX_ENABLE_MAC_SIGN=1 + APPLE_SIGNING_IDENTITY（Developer ID Application 全称）
 # 不配置则产出未签名包（electron-builder identity=null，见 electron-builder.config.js）。
@@ -20,7 +20,7 @@ env:
 
 jobs:
   build-dmg:
-    runs-on: macos
+    runs-on: macos-arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v4

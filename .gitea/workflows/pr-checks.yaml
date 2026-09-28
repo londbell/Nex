@@ -1,6 +1,5 @@
 # PR 检查流水线：安装依赖后跑 lint / typecheck / 架构检查 / 单测。
-# 运行器：任一 Linux docker runner（act_runner 的 ubuntu-latest 标签映射到带
-# Node 24 的镜像即可，例如 node:24-bookworm 或 catthehacker/ubuntu:full-24.04）。
+# 运行器：linux-amd64（host 模式 act_runner）。
 name: PR checks
 
 on:
@@ -14,13 +13,18 @@ env:
 
 jobs:
   checks:
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           # architecture:check --changed 需要完整历史来对比基线。
           fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
 
       - name: Enable pnpm (pinned)
         run: |
@@ -48,10 +52,15 @@ jobs:
 
   # apps/nex-cli 是独立 pnpm workspace，不在根 typecheck 覆盖范围内，必须单独检查。
   cli-checks:
-    runs-on: ubuntu-latest
+    runs-on: linux-amd64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
 
       - name: Enable pnpm (pinned)
         run: |
