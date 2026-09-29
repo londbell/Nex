@@ -59,6 +59,10 @@ jobs:
           pnpm typecheck
           pnpm -r --filter "@nex/cli..." build
 
+      - name: Resolve short sha
+        id: meta
+        run: echo "shortsha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
       - name: Build SEA binary (${{ matrix.target }})
         working-directory: packages/server
         run: node scripts/build-sea.mjs --target ${{ matrix.target }}
@@ -69,13 +73,13 @@ jobs:
           mkdir -p bundle/packaging
           cp nex-server-${{ matrix.target }} bundle/
           cp -r ../../../packaging/. bundle/packaging/
-          tar -czf nex-server-${{ matrix.target }}.tar.gz -C bundle .
+          tar -czf nex-server-${{ matrix.target }}-alpha-${{ steps.meta.outputs.shortsha }}.tar.gz -C bundle .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nex-server-${{ matrix.target }}
-          path: packages/server/dist/sea/nex-server-${{ matrix.target }}.tar.gz
+          name: nex-server-${{ matrix.target }}-alpha-${{ steps.meta.outputs.shortsha }}
+          path: packages/server/dist/sea/nex-server-${{ matrix.target }}-alpha-${{ steps.meta.outputs.shortsha }}.tar.gz
           retention-days: 7
 
   release:
@@ -94,6 +98,10 @@ jobs:
         with:
           files: dist/nex-server-*.tar.gz
 
+      - name: Resolve short sha
+        id: meta
+        run: echo "shortsha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
       # main 更新 → alpha-<shortsha> 标签的滚动发布：每次 main 构建一个独立
       # 的 alpha release（tag 指向当次 commit，历史 alpha 保留可回溯）。
       - name: Publish alpha release (main)
@@ -101,7 +109,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          shortsha="$(git rev-parse --short "$GITHUB_SHA")"
+          shortsha="${GITHUB_SHA::7}"
           tag="alpha-${shortsha}"
           notes="Alpha build of the server SEA binaries at commit ${GITHUB_SHA}.
 
@@ -112,4 +120,4 @@ One-step install: extract the tarball for your platform and run
             --target "$GITHUB_SHA" \
             --title "Nex server (${tag})" \
             --notes "$notes" \
-            dist/nex-server-*.tar.gz
+            dist/nex-server-*-alpha-${shortsha}.tar.gz
