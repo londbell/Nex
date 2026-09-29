@@ -5,14 +5,33 @@ All notable changes to Nex are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.1.0] - 2026-09-29
 
-### Removed the default plugin marketplace
+### Added
 
-- No marketplace is preset anymore: `DEFAULT_PLUGIN_MARKETPLACES` is emptied and
-  the store no longer shows the ZCode official CDN source (the CDN has no
-  `/nex/` shard; the path 404s). Adding marketplace sources is preserved
-  (git / GitHub / URL / local path, `.claude-plugin/marketplace.json` compatible)
+- Memory file preview in Settings → Memory: clicking a memory file row opens a
+  right-anchored preview dialog inside the settings layer (previously desktop
+  only offered "open with editor" buttons and web had no way to read memory
+  content). Renders with the same markdown stack as conversation messages;
+  oversized files (> 5 MiB) surface an inline notice matched by error code.
+  Works on both desktop and web (#15)
+- Server shipped as a self-contained SEA (single executable application)
+  binary with a rolling `alpha-<shortsha>` release on main updates (#1, #14)
+- Agent runtime resolution recovers node-pty from a fallback addon dir in
+  embedded runtimes (#14)
+
+### Changed
+
+- Built-in model providers and model rules dropped from Nex; provider
+  configuration is fully user-managed (#9)
+- Provider settings now surface real fetch errors and retry transient network
+  failures instead of failing silently (#10)
+- Engine baselines kept while removing built-in providers (#11)
+- Default plugin marketplace removed: no marketplace is preset anymore,
+  `DEFAULT_PLUGIN_MARKETPLACES` is emptied and the store no longer shows the
+  ZCode official CDN source (the CDN has no `/nex/` shard; the path 404s).
+  Adding marketplace sources is preserved (git / GitHub / URL / local path,
+  `.claude-plugin/marketplace.json` compatible)
 - Migration in `ensureDefaultPluginMarketplaces`: leftover preset official
   marketplace records (`nex-plugins-official` and the pre-rename
   `zcode-plugins-official`) in `known_marketplaces.json` are dropped on read
@@ -25,6 +44,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   remain as compatibility aliases and are canonicalized on read
 - Bundled capabilities (node-repl-host, browser-use) are unaffected: local
   seeding is independent of the marketplace list
+
+### Removed
+
+- The "Report issue" entry in task context menus (task list, grouped task
+  rows, header overflow menu); feedback remains available via the feedback
+  center, the chat error banner, and the session subscription error panel (#13)
+
+### Fixed
+
+- Server: fall back to homedir when the default workspace resolves to `/` (#8)
+- Server: seed the lite token cookie on any `?token=` request; deploy routing
+  fixed so `/` reaches the server and SPA fallback works (#1)
+- Packaging: inject the auth token into the macOS LaunchAgent (#7)
+- Server: prefer the monorepo agent bundle over a leaked env override in the
+  dev runtime (#12); agent command resolution tests no longer depend on the
+  real dist bundle
+
+### CI
+
+- PR checks, macOS DMG release (Developer ID signing + notarization + staple),
+  server/web Docker images published to GHCR; edge images build on main
+  pushes, versioned + latest only on tags
+- Server SEA release pipeline: full CLI workspace build before asset
+  collectors, packaging path fixes, short-sha tarball names
+- pnpm store and Electron binaries cached in GitHub Actions
+
+### Docs
+
+- README now defaults to English (`README.md`); the Chinese version moved to
+  `README.zh-CN.md`
+- CHANGELOG entries rewritten in English
 
 ## [1.0.2] - 2026-09-28
 
