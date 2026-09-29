@@ -113,10 +113,7 @@ jobs:
         run: |
           shortsha="${GITHUB_SHA::7}"
           tag="alpha-${shortsha}"
-          notes="Alpha build of the server SEA binaries at commit ${GITHUB_SHA}.
-
-One-step install: extract the tarball for your platform and run
-\`sudo ./packaging/install.sh --binary ./nex-server-<target>\`."
+          notes="Alpha build of the server SEA binaries at commit ${GITHUB_SHA}. One-step install: extract the tarball for your platform and run \`sudo ./packaging/install.sh --binary ./nex-server-<target>\`."
           gh release create "$tag" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
