@@ -1,0 +1,36 @@
+# Nex server systemd unit (Linux).
+# Install: see install.sh in this directory, or manually:
+#   sudo cp nex-server.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now nex-server
+#
+# Default layout:
+#   binary  /usr/local/bin/nex-server
+#   data    /var/lib/nex-server (sessions/settings/credentials, agent bundle release dir)
+#   config  /etc/nex-server/env (NEX_SERVER_AUTH_TOKEN and other env vars)
+[Unit]
+Description=Nex Server (single binary)
+Documentation=https://github.com/tylinux/Nex
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nex-server
+Group=nex-server
+EnvironmentFile=/etc/nex-server/env
+Environment=NEX_SERVER_HOST=0.0.0.0
+Environment=NEX_SERVER_PORT=3030
+Environment=NEX_DATA_BASE_DIR=/var/lib/nex-server
+ExecStart=/usr/local/bin/nex-server
+Restart=on-failure
+RestartSec=3
+# Give agent children a moment to wind down when long-lived WS sessions die.
+KillMode=mixed
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/nex-server
+
+[Install]
+WantedBy=multi-user.target

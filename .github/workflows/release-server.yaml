@@ -1,0 +1,122 @@
+# Publish the Nex server SEA binaries as one-step install tarballs on GitHub
+# Releases.
+#
+# Release rules (mirrors the docker edge/latest flow):
+#   - main branch update / manual dispatch -> rolling release tagged
+#     alpha-<shortsha> (one release per main build, kept for rollback)
+#   - v* tag push -> versioned assets on that tag's release
+#
+# Artifacts (binary + packaging/: install.sh, systemd unit, launchd plist):
+#   nex-server-darwin-arm64-alpha-<shortsha>.tar.gz
+#   nex-server-linux-x64-alpha-<shortsha>.tar.gz
+#   nex-server-linux-arm64-alpha-<shortsha>.tar.gz
+#
+# The Node version used for the build must match the license entry recorded in
+# third-party/runtime/sources.json (currently 24.14.0); CI pins it via setup-node.
+name: Server binaries (SEA)
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: "24.14.0"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest, target: darwin-arm64 }
+          - { os: ubuntu-latest, target: linux-x64 }
+          - { os: ubuntu-latest, target: linux-arm64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Build workspace packages and agent bundle
+        run: |
+          pnpm typecheck
+          pnpm -r --filter "@nex/cli..." build
+
+      - name: Resolve short sha
+        id: meta
+        run: echo "shortsha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build SEA binary (${{ matrix.target }})
+        working-directory: packages/server
+        run: node scripts/build-sea.mjs --target ${{ matrix.target }}
+
+      - name: Package one-step install tarball
+        working-directory: packages/server/dist/sea
+        run: |
+          mkdir -p bundle/packaging
+          cp nex-server-${{ matrix.target }} bundle/
+          cp -r ../../../packaging/. bundle/packaging/
+          tar -czf nex-server-${{ matrix.target }}-alpha-${{ steps.meta.outputs.shortsha }}.tar.gz -C bundle .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nex-server-${{ matrix.target }}-alpha-${{ steps.meta.outputs.shortsha }}
+          path: packages/server/dist/sea/nex-server-${{ matrix.target }}-alpha-${{ steps.meta.outputs.shortsha }}.tar.gz
+          retention-days: 7
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: dist
+
+      - name: Publish versioned release (v* tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/nex-server-*.tar.gz
+
+      - name: Resolve short sha
+        id: meta
+        run: echo "shortsha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      # main update -> a rolling alpha-<shortsha> release: each main build gets
+      # its own alpha release (tag pinned to that commit, history kept).
+      - name: Publish alpha release (main)
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          shortsha="${GITHUB_SHA::7}"
+          tag="alpha-${shortsha}"
+          notes="Alpha build of the server SEA binaries at commit ${GITHUB_SHA}. One-step install: extract the tarball for your platform and run \`sudo ./packaging/install.sh --binary ./nex-server-<target>\`."
+          gh release create "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Nex server (${tag})" \
+            --notes "$notes" \
+            dist/nex-server-*-alpha-${shortsha}.tar.gz

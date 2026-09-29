@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Nex server launchd service (macOS, runs as the user).
+  Install: see install.sh in this directory, or manually:
+    cp com.nex.server.plist ~/Library/LaunchAgents/
+    launchctl load -w ~/Library/LaunchAgents/com.nex.server.plist
+
+  Default layout:
+    binary  /usr/local/bin/nex-server
+    data    ~/.nex/server-data
+    logs    ~/.nex/server.log / ~/.nex/server.err.log
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.nex.server</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/local/bin/nex-server</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>NEX_SERVER_HOST</key>
+    <string>0.0.0.0</string>
+    <key>NEX_SERVER_PORT</key>
+    <string>3030</string>
+    <key>NEX_DATA_BASE_DIR</key>
+    <string>/Users/REPLACE_ME/.nex/server-data</string>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+  <key>StandardOutPath</key>
+  <string>/Users/REPLACE_ME/.nex/server.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/REPLACE_ME/.nex/server.err.log</string>
+</dict>
+</plist>
