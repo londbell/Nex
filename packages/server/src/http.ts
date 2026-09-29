@@ -157,7 +157,15 @@ function resolveServerWorkspaces(options: HttpServerOptions): ServerRemoteWorksp
   if (options.workspaces) {
     return options.workspaces;
   }
-  const workspacePath = readTrimmedEnv("NEX_SERVER_WORKSPACE") || process.cwd();
+  // No implicit default workspace (matches the desktop behavior): only an
+  // explicit NEX_SERVER_WORKSPACE registers one, otherwise the list starts
+  // empty and users add workspaces themselves. This also avoids service
+  // managers (launchd/systemd, cwd=/) leaking a useless "/" entry that could
+  // never be deleted for good.
+  const workspacePath = readTrimmedEnv("NEX_SERVER_WORKSPACE");
+  if (!workspacePath) {
+    return [];
+  }
   return [
     {
       path: workspacePath,
