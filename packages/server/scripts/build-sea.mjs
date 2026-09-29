@@ -1,13 +1,15 @@
-// server SEA 构建脚本：把 HTTP server（含内嵌 agent bundle）打成 Node 单二进制。
+// Server SEA build script: packs the HTTP server (with the embedded agent
+// bundle) into a Node single binary.
 //
-// 产物：dist/sea/nex-server-<target>（darwin-arm64 / linux-x64 / linux-arm64）。
-// 二进制两种角色（见 src/seaEntry.ts）：
-//   ./nex-server           → HTTP server（默认）
-//   NEX_SEA_AGENT_ROLE=1   → agent（app-server --stdio，由 server 自身 spawn）
+// Artifacts: dist/sea/nex-server-<target> (darwin-arm64 / linux-x64 / linux-arm64).
+// Two roles in one binary (see src/seaEntry.ts):
+//   ./nex-server           -> HTTP server (default)
+//   NEX_SEA_AGENT_ROLE=1   -> agent (app-server --stdio, spawned by the server itself)
 //
-// 与 CLI 的 SEA 管线（apps/nex-cli/packages/cli/scripts/build-sea.mjs）复用同一套
-// 资产收集器与注入机制：agent 以本二进制运行时 isSea() 为真，CLI 侧代码按相同
-// asset key 读取资源并释放到用户缓存目录。
+// Reuses the CLI SEA pipeline's asset collectors and injection mechanism
+// (apps/nex-cli/packages/cli/scripts/build-sea.mjs): when the agent runs inside
+// this binary isSea() is true, so CLI code reads the assets by the same keys
+// and releases them into the user cache directory.
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";

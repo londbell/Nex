@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Nex server launchd 服务（macOS，按用户运行）。
-  安装：见同目录 install.sh，或手动：
+  Nex server launchd service (macOS, runs as the user).
+  Install: see install.sh in this directory, or manually:
     cp com.nex.server.plist ~/Library/LaunchAgents/
     launchctl load -w ~/Library/LaunchAgents/com.nex.server.plist
 
-  默认布局：
-    二进制  /usr/local/bin/nex-server
-    数据    ~/.nex/server-data
-    日志    ~/.nex/server.log / ~/.nex/server.err.log
+  Default layout:
+    binary  /usr/local/bin/nex-server
+    data    ~/.nex/server-data
+    logs    ~/.nex/server.log / ~/.nex/server.err.log
 -->
 <plist version="1.0">
 <dict>

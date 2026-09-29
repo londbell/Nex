@@ -1,16 +1,18 @@
-# Nex server 单二进制发布：构建三个平台的 SEA 二进制一键安装包并上传 GitHub Release。
+# Publish the Nex server SEA binaries as one-step install tarballs on GitHub
+# Releases.
 #
-# 触发与发布规则（与 docker 的 edge/latest 对齐）：
-#   - main 分支更新 / 手动 dispatch → 固定 tag `alpha`（每次覆盖资产，tag 跟随 main HEAD）
-#   - v* tag 推送 → 正式版本化资产，上传到该 tag 的 Release
+# Release rules (mirrors the docker edge/latest flow):
+#   - main branch update / manual dispatch -> rolling release tagged
+#     alpha-<shortsha> (one release per main build, kept for rollback)
+#   - v* tag push -> versioned assets on that tag's release
 #
-# 产物（一键安装包：二进制 + packaging/ 的 install.sh、systemd unit、launchd plist）：
-#   nex-server-darwin-arm64.tar.gz
-#   nex-server-linux-x64.tar.gz
-#   nex-server-linux-arm64.tar.gz
+# Artifacts (binary + packaging/: install.sh, systemd unit, launchd plist):
+#   nex-server-darwin-arm64-alpha-<shortsha>.tar.gz
+#   nex-server-linux-x64-alpha-<shortsha>.tar.gz
+#   nex-server-linux-arm64-alpha-<shortsha>.tar.gz
 #
-# 本机 Node 版本必须与 third-party/runtime/sources.json 登记的 license 条目一致
-# （当前锚定 24.14.0），CI 用 setup-node 固定。
+# The Node version used for the build must match the license entry recorded in
+# third-party/runtime/sources.json (currently 24.14.0); CI pins it via setup-node.
 name: Server binaries (SEA)
 
 on:
@@ -102,8 +104,8 @@ jobs:
         id: meta
         run: echo "shortsha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
-      # main 更新 → alpha-<shortsha> 标签的滚动发布：每次 main 构建一个独立
-      # 的 alpha release（tag 指向当次 commit，历史 alpha 保留可回溯）。
+      # main update -> a rolling alpha-<shortsha> release: each main build gets
+      # its own alpha release (tag pinned to that commit, history kept).
       - name: Publish alpha release (main)
         if: github.ref == 'refs/heads/main'
         env:

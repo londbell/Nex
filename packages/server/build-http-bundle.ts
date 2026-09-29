@@ -6,14 +6,16 @@ import { stageThirdPartyNotices } from "../../scripts/third-party-notices.mjs";
 const { version } = JSON.parse(readFileSync("../../package.json", "utf-8"));
 
 /**
- * HTTP server 的 SEA 前置 bundle：把入口（及其整个 workspace 依赖图）打成
- * 单文件 CJS，供 scripts/build-sea.mjs 注入 Node 单二进制。
+ * SEA pre-bundle for the HTTP server: packs the entry point (and its whole
+ * workspace dependency graph) into a single CJS file for scripts/build-sea.mjs
+ * to inject into a Node single binary.
  *
- * 与 build-remote.ts（entry-stdio，SSH 远端部署形态）同源同策略：
- * - node-pty 的 JS 内联、.node 原生文件保持 external require（运行时从 SEA
- *   assets 释放目录解析，见 sea-native-runtime.ts）
- * - CJS 而非 ESM：node-pty 大量使用 __dirname，且 CJS 里 dynamic require
- *   （node-forge 的 require("crypto")、yazl）由 Node 原生支持
+ * Same strategy as build-remote.ts (entry-stdio, the SSH remote deployment):
+ * - node-pty's JS is inlined while .node native addons stay as external
+ *   requires (resolved at runtime from the SEA assets release directory)
+ * - CJS instead of ESM: node-pty relies heavily on __dirname, and dynamic
+ *   requires (node-forge's require("crypto"), yazl) are natively supported
+ *   in CJS output
  */
 const nativeAddonPlugin: Plugin = {
   name: "native-addon",
@@ -64,7 +66,8 @@ export async function buildHttpBundle({ entryPoint, outfile }: HttpBundleOptions
   return { bundledInputs, version };
 }
 
-// 直接运行：产出 entry-http 的单文件 bundle（SEA 之外的部署形态也能用）。
+// Run directly: emits the single-file bundle of entry-http (also usable for
+// non-SEA deployment layouts).
 const entryPath = process.argv[1];
 if (entryPath && import.meta.url === new URL(`file://${entryPath}`).href) {
   const { bundledInputs, version: bundleVersion } = await buildHttpBundle({

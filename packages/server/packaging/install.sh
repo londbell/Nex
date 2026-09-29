@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
-# Nex server（单二进制）安装脚本：安装二进制 + 注册 launchctl/systemd 服务。
+# Nex server (single binary) installer: installs the binary and registers the
+# launchctl/systemd service.
 #
-# 用法：
+# Usage:
 #   sudo ./install.sh --binary /path/to/nex-server-linux-x64 [--token <hex>]
 #   sudo ./install.sh --binary ./nex-server-darwin-arm64 --uninstall
 #
-# 行为：
-#   - 二进制装到 /usr/local/bin/nex-server
-#   - Linux：创建 nex-server 系统用户，数据目录 /var/lib/nex-server，
-#     env 文件 /etc/nex-server/env，systemd 单元 nex-server.service
-#   - macOS：数据目录 ~/.nex/server-data，LaunchAgent com.nex.server
-#   - 不传 --token 且没有已存在的 env 时自动生成（openssl rand -hex 32）
+# Behavior:
+#   - Binary installed to /usr/local/bin/nex-server
+#   - Linux: creates a nex-server system user, data dir /var/lib/nex-server,
+#     env file /etc/nex-server/env, systemd unit nex-server.service
+#   - macOS: data dir ~/.nex/server-data, LaunchAgent com.nex.server
+#   - Token auto-generated (openssl rand -hex 32) when --token is omitted and
+#     no env file exists yet
 set -euo pipefail
 
 BINARY=""
