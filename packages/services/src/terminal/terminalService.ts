@@ -6,11 +6,8 @@ import { Emitter, type Event } from "@nex/rpc";
 import type { IPty } from "node-pty";
 import type { ISettingService } from "../setting/setting.js";
 import type { ITerminalService, TerminalWindowsPtyInfo } from "./terminal.js";
-import {
-  ensureFallbackSpawnHelperInstalled,
-  installNativePtyAddonRedirect,
-  resolveFallbackPtyModuleDir,
-} from "./terminalPtyFallback.js";
+import { resolveFallbackPtyModuleDir } from "./terminalPtyFallback.js";
+import { loadNodePtyModule, type NodePtyModule } from "./terminalPtyLoader.js";
 import {
   resolveTerminalFontProfile,
   type TerminalFontFamilySource,
@@ -19,7 +16,6 @@ import {
 import { registerMemoryDiagnosticsProvider } from "#src/memoryDiagnostics.js";
 
 const require = createRequire(import.meta.url);
-type NodePtyModule = typeof import("node-pty");
 type PtySpawnOptions = Parameters<NodePtyModule["spawn"]>[2];
 
 interface TerminalInstance {
@@ -29,45 +25,6 @@ interface TerminalInstance {
 }
 
 let hasEnsuredNodePtyHelper = false;
-let nodePtyModulePromise: Promise<NodePtyModule> | null = null;
-
-async function loadNodePtyModule(): Promise<NodePtyModule> {
-  if (!nodePtyModulePromise) {
-    nodePtyModulePromise = import("node-pty").catch(async (error: unknown) => {
-      // node-pty failed to resolve its native addon. Before giving up, try
-      // the embedding-runtime fallback directory (terminalPtyFallback.ts).
-      // remote server 启动时会先创建所有服务，之前这里顶层 import node-pty，
-      // 只要当前平台缺少 pty.node，就会在服务注册阶段直接崩掉，整条远程连接链路都失败。
-      // 改成延迟加载后，server 可以先完成握手，仅在真正创建终端时再暴露“terminal 不可用”的错误。
-      const fallbackDir = resolveFallbackPtyModuleDir();
-      if (!fallbackDir) {
-        nodePtyModulePromise = null;
-        throw error;
-      }
-      const restore = installNativePtyAddonRedirect(fallbackDir);
-      try {
-        // The addon require probes build/Release first, so node-pty will look
-        // for the darwin spawn-helper there as well; stage it from the
-        // fallback dir before the retry loads node-pty's UnixTerminal.
-        ensureFallbackSpawnHelperInstalled(fallbackDir);
-        return (await import("node-pty")) as NodePtyModule;
-      } catch {
-        nodePtyModulePromise = null;
-        // Report the original failure: the retry failure is a consequence,
-        // and the original message names node-pty's searched directories.
-        throw new Error(
-          `node-pty is unavailable in this runtime (fallback dir '${fallbackDir}' did not resolve it either): ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
-      } finally {
-        restore();
-      }
-    }) as Promise<NodePtyModule>;
-  }
-
-  return nodePtyModulePromise;
-}
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -126,6 +83,16 @@ function isUsableDirectory(path: string): boolean {
 
 function resolveNodePtySpawnHelperPath(): string | null {
   if (process.platform !== "darwin") return null;
+
+  // SEA 路径：released node-pty 的 prebuilds 目录自带可执行的 spawn-helper
+  //（seaEntry 释放时已 chmod 0755），直接指向那里。
+  const releasedEntry = process.env.NEX_PTY_ENTRY?.trim();
+  if (releasedEntry) {
+    const releasedDir = dirname(dirname(releasedEntry));
+    const platformArch = `darwin-${process.arch}`;
+    const prebuildHelper = join(releasedDir, "prebuilds", platformArch, "spawn-helper");
+    if (existsSync(prebuildHelper)) return prebuildHelper;
+  }
 
   try {
     const utils = require("node-pty/lib/utils") as {
