@@ -1,4 +1,5 @@
 import type { BackgroundBashOutputResult } from "@nex/shared";
+import type { PromptContextEntry } from "./methods/prompt-context.js";
 import type { RuntimeInputPresentation } from "@nex/contracts";
 import type {
   CompactPhase,
@@ -246,6 +247,7 @@ export interface AgentRuntimeTurnMethods {
   resolvePermission(toolCallId: ToolCallId, decision: PermissionDecisionResult): Promise<void>;
   getPendingPermissionRequests(): PermissionBrokerRequest[];
   getProjection(): Promise<SessionProjection>;
+  getPromptContextEntries(): PromptContextEntry[];
   readBackgroundBashOutput(workId: string, sessionId?: string): Promise<BackgroundBashOutputResult>;
   cancelBackgroundTask(
     taskId: string,

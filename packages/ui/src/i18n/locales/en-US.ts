@@ -2078,6 +2078,12 @@ const enUS: Record<string, string> = {
   "settings.nativeSearchEnhancements": "Enhanced Find and Grep",
   "settings.nativeSearchEnhancementsDescription":
     "Use enhanced Find and Grep in new sessions and sessions restored after an app restart. Active sessions keep their current setting; Find remains unchanged on Windows.",
+  "settings.toolSearch": "On-demand MCP tools",
+  "settings.toolSearchDescription":
+    "Keep MCP tool schemas out of every request; the model finds them with ToolSearch when needed. Applies to new sessions and sessions restored after an app restart.",
+  "settings.codemode": "Codemode (script tool calls)",
+  "settings.codemodeDescription":
+    "Let the model write a short JavaScript program that calls tools in an isolated sandbox, so intermediate results stay out of the conversation. Applies to new sessions and sessions restored after an app restart.",
   "settings.memory": "Memory",
   "settings.memory.workspaceMemory": "Workspace Memory",
   "settings.memoryDescription":
@@ -2606,6 +2612,22 @@ const enUS: Record<string, string> = {
   "settings.mcp.form.protocolVersion.auto": "Auto (recommended)",
   "settings.mcp.form.protocolVersion.legacy": "Legacy compatibility",
   "settings.mcp.form.protocolVersion.modern": "v2",
+  "settings.mcp.form.exposure": "Tool exposure",
+  "settings.mcp.form.exposure.default": "Default",
+  "settings.mcp.form.exposure.direct": "Direct (always visible)",
+  "settings.mcp.form.exposure.deferred": "Deferred (find with ToolSearch)",
+  "settings.mcp.form.exposure.hidden": "Hidden (unavailable)",
+  "settings.mcp.form.toolExposure": "Per-tool exposure",
+  "settings.mcp.form.toolExposure.hint":
+    "Overrides the server setting for a single tool. Default means the tool follows the server setting.",
+  "settings.mcp.form.toolExposure.search": "Search tools",
+  "settings.mcp.form.toolExposure.matchCount": "{shown} of {total} tools",
+  "settings.mcp.form.toolExposure.noMatch": "No tool matches this search.",
+  "settings.mcp.form.toolExposure.viaPattern": "{value} via {pattern}",
+  "settings.mcp.form.toolExposure.unmatched":
+    "Kept in the config but matching no current tool: {keys}",
+  "settings.mcp.form.exposure.hint":
+    "Default follows Settings > On-demand MCP tools. Per-tool overrides go in the config file as toolExposure. Applies to new sessions.",
   "settings.mcp.form.type.stdio": "stdio (local command)",
   "settings.mcp.form.type.sse": "SSE (Server-Sent Events)",
   "settings.mcp.form.command": "Command",
@@ -4538,6 +4560,14 @@ const enUS: Record<string, string> = {
   "chat.contextUsage.breakdown.systemTools": "System tools",
   "chat.contextUsage.breakdown.mcpTools": "MCP tools",
   "chat.contextUsage.compress": "Compress",
+  "chat.systemPrompt.button": "Show system prompt",
+  "chat.systemPrompt.title": "Prompt context",
+  "chat.systemPrompt.description": "Everything the model receives in this conversation except the messages: system prompt, meta context, skills and tools.",
+  "chat.systemPrompt.loading": "Loading…",
+  "chat.systemPrompt.empty": "No prompt has been built for this conversation yet.",
+  "chat.systemPrompt.unavailable": "The prompt is not available for this conversation.",
+  "chat.systemPrompt.copy": "Copy tab",
+  "chat.systemPrompt.copied": "Copied",
   "chat.contextUsage.compressDescription": "Send {command} to compress the current context",
   "tokenDebug.open": "Open token debug",
   "tokenDebug.column.tps": "TPS (tokens/s)",

@@ -1,5 +1,10 @@
 import { requestPluginReferenceCatalog } from "#src/nex-agent/pluginReferenceCatalogRequest.js";
-import { localTtftFactsSchema, sessionDebugSnapshotSchema, type LocalTtftFacts } from "@nex/shared";
+import {
+  localTtftFactsSchema,
+  sessionDebugSnapshotSchema,
+  sessionPromptContextSnapshotSchema,
+  type LocalTtftFacts,
+} from "@nex/shared";
 /* oxlint-disable eslint(max-lines) -- Nex Protocol transport、通知 wiring 和 app-facing session 方法必须共享同一个 client/emitter 上下文。 */
 import { randomUUID } from "node:crypto";
 import { ensureIndependentPlanSupport } from "./independentPlanSupport.js";
@@ -1738,6 +1743,8 @@ export function createNexAgentService(
                     askUserQuestionAutoResolutionEnabled: true,
                     nativeSearchEnhancementsEnabled: true,
                     memoryEnabled: false,
+                    toolSearchEnabled: false,
+                    codemodeEnabled: false,
                   },
                 );
               } catch (error) {
@@ -2975,6 +2982,15 @@ export function createNexAgentService(
         nexProtocolMethods.sessionDebug,
         { sessionId: params.sessionId },
         sessionDebugSnapshotSchema,
+      );
+    },
+
+    async readSessionPromptContext(params) {
+      const client = await getReadOnlyClient(params, "existing-only");
+      return client.request(
+        nexProtocolMethods.sessionPromptContext,
+        { sessionId: params.sessionId },
+        sessionPromptContextSnapshotSchema,
       );
     },
 

@@ -626,6 +626,8 @@ const nexProtocolMcpOAuthSchema = z.union([
     .strict(),
 ]);
 
+const nexProtocolMcpExposureSchema = z.enum(["direct", "deferred", "hidden"]);
+
 export const nexProtocolMcpServerSchema = z.union([
   z
     .object({
@@ -635,6 +637,8 @@ export const nexProtocolMcpServerSchema = z.union([
       env: z.array(nexProtocolMcpEntrySchema),
       isolation: z.enum(["session", "workspace"]).optional(),
       protocolVersion: z.enum(["legacy", "auto", "2026-07-28"]).optional(),
+      exposure: nexProtocolMcpExposureSchema.optional(),
+      toolExposure: z.record(nonEmptyString, nexProtocolMcpExposureSchema).optional(),
       timeoutMs: z.number().int().positive().optional(),
     })
     .strict(),
@@ -647,6 +651,8 @@ export const nexProtocolMcpServerSchema = z.union([
       oauth: nexProtocolMcpOAuthSchema.optional(),
       isolation: z.enum(["session", "workspace"]).optional(),
       protocolVersion: z.enum(["legacy", "auto", "2026-07-28"]).optional(),
+      exposure: nexProtocolMcpExposureSchema.optional(),
+      toolExposure: z.record(nonEmptyString, nexProtocolMcpExposureSchema).optional(),
       timeoutMs: z.number().int().positive().optional(),
     })
     .strict(),
@@ -689,6 +695,7 @@ export const nexMcpServerStatusSnapshotSchema = z
     status: nexMcpServerStatusKindSchema,
     transport: z.enum(["stdio", "http", "sse"]),
     toolCount: z.number().int().nonnegative(),
+    toolNames: z.array(nonEmptyString).optional(),
     updatedAt: nonEmptyString,
     error: z.string().optional(),
     failureKind: mcpServerFailureKindSchema.optional(),
@@ -1704,6 +1711,8 @@ export const nexSessionRuntimePreferencesResultSchema = z
   .object({
     nativeSearchEnhancementsEnabled: z.boolean(),
     memoryEnabled: z.boolean().default(false),
+    toolSearchEnabled: z.boolean().default(false),
+    codemodeEnabled: z.boolean().default(false),
     askUserQuestionAutoResolutionEnabled: z.boolean().default(true),
     integratedTerminalShell: integratedTerminalShellSelectionSchema.optional(),
     // 兼容旧 Host：缺少字段时在协议解析边界使用当前默认策略。
@@ -3572,6 +3581,7 @@ export const nexProtocolMethods = {
   sessionMessages: "session/messages",
   sessionEvents: "session/events",
   sessionDebug: "session/debug",
+  sessionPromptContext: "session/promptContext",
   sessionSubscribe: "session/subscribe",
   // @deprecated（部分）：send 主路径已收敛 v4 sendText；仅剩 adapter 附件
   // 回退分支消费（v4 attachmentRef 上传/寄存命令面未建模），待附件命令面落地后移除。

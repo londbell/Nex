@@ -267,6 +267,8 @@ export function SettingsPage({
     return [...names];
   }, [sharedSettings?.recentProjects, workspaceTabs]);
   const memoryEnabled = sharedSettings?.memoryEnabled === true;
+  const toolSearchEnabled = sharedSettings?.toolSearchEnabled === true;
+  const codemodeEnabled = sharedSettings?.codemodeEnabled === true;
   const nativeSearchEnhancementsEnabled = sharedSettings?.nativeSearchEnhancementsEnabled !== false;
   const askUserQuestionAutoResolutionEnabled =
     sharedSettings?.askUserQuestionAutoResolutionEnabled !== false;
@@ -412,6 +414,18 @@ export function SettingsPage({
   const handleNativeSearchEnhancementsEnabledChange = useCallback(
     async (enabled: boolean) => {
       await updateSharedSettings({ nativeSearchEnhancementsEnabled: enabled });
+    },
+    [updateSharedSettings],
+  );
+  const handleToolSearchEnabledChange = useCallback(
+    async (enabled: boolean) => {
+      await updateSharedSettings({ toolSearchEnabled: enabled });
+    },
+    [updateSharedSettings],
+  );
+  const handleCodemodeEnabledChange = useCallback(
+    async (enabled: boolean) => {
+      await updateSharedSettings({ codemodeEnabled: enabled });
     },
     [updateSharedSettings],
   );
@@ -892,6 +906,8 @@ export function SettingsPage({
                             integratedTerminalShell={integratedTerminalShell}
                             integratedTerminalShellOptions={integratedTerminalShellOptions}
                             nativeSearchEnhancementsEnabled={nativeSearchEnhancementsEnabled}
+                            toolSearchEnabled={toolSearchEnabled}
+                            codemodeEnabled={codemodeEnabled}
                             httpProxy={httpProxy}
                             httpProxyNoProxy={httpProxyNoProxy}
                             httpProxyCaCertPath={httpProxyCaCertPath}
@@ -924,6 +940,8 @@ export function SettingsPage({
                             onNativeSearchEnhancementsEnabledChange={
                               handleNativeSearchEnhancementsEnabledChange
                             }
+                            onToolSearchEnabledChange={handleToolSearchEnabledChange}
+                            onCodemodeEnabledChange={handleCodemodeEnabledChange}
                             onModelIoFullRetentionEnabledChange={
                               handleModelIoFullRetentionEnabledChange
                             }

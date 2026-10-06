@@ -173,6 +173,13 @@ export interface AgentRuntimeConfig {
      */
     browserDocumentationRoot?: string;
   };
+  /**
+   * deferred 工具声明（docs/specs/codemode.md P1）。开启后 MCP 工具默认 deferred，
+   * 模型经 ToolSearch 发现；关闭时所有工具照旧 direct，ToolSearch 不注册。
+   */
+  toolSearch?: { enabled?: boolean };
+  /** 是否注册 Codemode 工具（沙箱里写 JS 编排其它工具）；默认关闭。 */
+  codemode?: { enabled?: boolean };
   modelAnomalyGuard?: Partial<ModelAnomalyGuardConfig>;
   mcp?: {
     enabled?: boolean;

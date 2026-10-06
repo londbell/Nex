@@ -29,6 +29,7 @@ import { applyRuntimeExecutionState } from "../execution-state.js";
 
 import { orderProviderVisibleToolContracts } from "../../tool/provider-visible-order.js";
 import { projectToolModelContract } from "../../tool/model-contract.js";
+import { filterDeclaredToolContracts } from "../../tool/tool-search-activation.js";
 import { rebuildContextPrefix } from "./context-refresh.js";
 import { filterEmbeddedSearchRuntimeVisibleTools } from "./embedded-search-branch.js";
 import {
@@ -137,7 +138,11 @@ export function getTools(this: AgentRuntimeInternal, model?: Model): ModelToolCo
   if (this.cachedTools === null) {
     this.cachedTools = filterRuntimeVisibleTools.call(this, this.registry.toContracts());
   }
-  return this.cachedTools
+  return filterDeclaredToolContracts(
+    this.cachedTools,
+    this.registry,
+    this.messageHistory.borrowReadOnlyRuntimeEntries(),
+  )
     .filter((tool) => tool.name !== "WebSearch" || shouldExposeWebSearch.call(this, model))
     .map((tool) =>
       projectToolModelContract(tool, this.registry.get(tool.name), {

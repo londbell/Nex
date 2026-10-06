@@ -113,6 +113,9 @@ async function executeToolCallImpl(
     attributes: {
       toolCallId: canonicalToolCall.id,
       toolName: canonicalToolCall.name,
+      ...(options?.parentToolCallId === undefined
+        ? {}
+        : { parentToolCallId: options.parentToolCallId }),
     },
   });
   const traceId = traceContext.traceId;
@@ -415,6 +418,8 @@ async function executeToolCallImpl(
       dynamicWorkflowRunPort: deps.dynamicWorkflowRunPort,
       dynamicWorkflowSnippetPort: deps.dynamicWorkflowSnippetPort,
       modelCatalogPort: deps.modelCatalogPort,
+      deferredToolCatalog: deps.deferredToolCatalog,
+      nestedTools: deps.nestedTools,
       runtimeTaskRegistry: deps.runtimeTaskRegistry,
       readFileState: deps.readFileState,
       recordReadFileStateMetadata: (metadata) => {

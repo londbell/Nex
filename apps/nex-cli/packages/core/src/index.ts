@@ -20,6 +20,15 @@ export type { ToolSchedule, ToolScheduleItem, ToolDependency } from "./tool/sche
 export { createToolRegistry, ToolRegistry, ToolRegistryImpl } from "./tool/registry.js";
 export { createToolExecutor, ToolExecutor, ToolExecutorImpl } from "./tool/executor.js";
 export { builtInTools, registerBuiltInTools } from "./tool/handlers/index.js";
+export { toolSearchToolEntry } from "./tool/handlers/tool-search.js";
+export { createCodemodeToolEntry } from "./tool/handlers/codemode.js";
+export { buildCodemodeDescription } from "./codemode/description.js";
+export { setCodemodeWorkerUrl } from "./codemode/worker-url.js";
+export { searchToolDocuments } from "./tool/tool-search-index.js";
+export {
+  encodeToolSearchResults,
+  filterDeclaredToolContracts,
+} from "./tool/tool-search-activation.js";
 // dwf driver 的 submit profile 运行时守卫要把 typed 声明换回通用声明。
 export {
   createSubmitResultToolEntry,
@@ -81,6 +90,7 @@ export * from "./hooks/index.js";
 
 // MCP components
 export * from "./mcp/index.js";
+export { resolveMcpToolExposure, sessionHasDeferredMcpConfig } from "./mcp/exposure.js";
 
 // Plugin 对话引用（@ Plugin capability hint）
 export * from "./plugin-reference/index.js";

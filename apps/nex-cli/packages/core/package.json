@@ -27,20 +27,22 @@
     "build": "tsc",
     "clean": "node ../../scripts/clean-dist.mjs",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
     "lint": "oxlint src --no-ignore",
     "lint:fix": "oxlint --fix src --no-ignore"
   },
   "dependencies": {
     "@nex/contracts": "workspace:*",
     "@nex/dynamic-workflow": "workspace:*",
+    "@nex/nex-cua": "link:../../../../packages/nex-cua",
     "@nex/shared": "link:../../../../packages/shared",
     "@nex/shared-types": "workspace:*",
-    "@nex/nex-cua": "link:../../../../packages/nex-cua",
     "cheerio": "^1.0.0",
     "diff": "^9.0.0",
     "ipaddr.js": "1.9.1",
     "marked": "16.4.2",
     "meriyah": "^7.1.1",
+    "quickjs-wasi": "3.6.2",
     "unbash": "4.0.1",
     "yaml": "^2.9.0"
   },
