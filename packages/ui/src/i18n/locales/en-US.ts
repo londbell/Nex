@@ -2716,6 +2716,12 @@ const enUS: Record<string, string> = {
   "settings.modelProvider.modelDeleteSuccess": "{provider} / {model} deleted",
   "settings.modelProvider.modelDeleteFailure": "Failed to delete {provider} / {model}: {error}",
   "settings.modelProvider.modelSaveFailure": "Failed to save {provider} / {model}: {error}",
+  "settings.modelProvider.modelsAdding":
+    "Adding {count, plural, one {# model} other {# models}} to {provider}",
+  "settings.modelProvider.modelsAddSuccess":
+    "{count, plural, one {# model} other {# models}} added to {provider}",
+  "settings.modelProvider.modelsAddFailure":
+    "Failed to add {count, plural, one {# model} other {# models}} to {provider}: {models}",
   "settings.modelProvider.cancel": "Cancel",
   "settings.modelProvider.name": "Name",
   "settings.modelProvider.namePlaceholder": "e.g. DeepSeek",
@@ -3334,6 +3340,9 @@ const enUS: Record<string, string> = {
   "settings.modelProvider.remotePicker.empty": "No models found",
   "settings.modelProvider.remotePicker.addFailed": "Failed to add: {models}",
   "settings.modelProvider.modelId": "Model ID",
+  "settings.modelProvider.modelName": "Model name",
+  "settings.modelProvider.modelNameHelp":
+    "Optional short name shown in the chat model picker as Provider/Name. Requests still use the Model ID.",
   "settings.modelProvider.modelDisplayName": "Display name",
   "settings.modelProvider.modelApiFormat.anthropic": "Anthropic messages",
   "settings.modelProvider.modelApiFormat.openaiCompatible": "OpenAI Compatible",
@@ -3370,6 +3379,8 @@ const enUS: Record<string, string> = {
   "settings.modelProvider.modality.audio": "Audio",
   "settings.modelProvider.modality.pdf": "PDF",
   "settings.modelProvider.modelMetadata.invalid.id": "Model ID is required",
+  "settings.modelProvider.modelMetadata.invalid.name":
+    "Model name must be 1–64 characters without control characters",
   "settings.modelProvider.modelMetadata.invalid.kinds": "Select at least one API format",
   "settings.modelProvider.modelMetadata.invalid.contextWindow":
     "Context window must be a positive integer",
