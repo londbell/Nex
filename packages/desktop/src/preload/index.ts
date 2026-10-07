@@ -62,6 +62,7 @@ import type {
   WindowControlsOverlayReadyPayload,
   CreateTempTextAttachmentRequest,
   OpenCuaPermissionOnboardingOptions,
+  PetWindowState,
 } from "@nex/shared";
 import { InternalChannels, PlatformChannels, formatNexRendererProcessName } from "@nex/shared";
 
@@ -73,6 +74,9 @@ let latestReadyUpdateVersion: string | null = null;
 let latestUpdateState: UpdateStatePayload | null = null;
 let latestPostUpdateReleaseNotes: PostUpdateReleaseNotesPayload | null = null;
 const pendingOpenWorkspacePaths: string[] = [];
+const openSettingsSectionCallbacks = new Set<(section: string) => void>();
+// 主窗口冷启动时 main 可能先于 React 订阅投递；先缓冲再在订阅建立后回放。
+const pendingOpenSettingsSections: string[] = [];
 const shareImportCallbacks = new Set<(payload: { shareCode: string }) => void>();
 const pendingShareImports: { shareCode: string }[] = [];
 const MACOS_WINDOW_CONTROLS_BASE_LEFT_PADDING_PX = 96;
@@ -161,6 +165,14 @@ ipcRenderer.on(PlatformChannels.OpenWorkspacePath, (_event: unknown, path: strin
   for (const callback of openWorkspacePathCallbacks) {
     callback(path);
   }
+});
+
+ipcRenderer.on(PlatformChannels.OpenSettingsSection, (_event: unknown, section: string) => {
+  if (openSettingsSectionCallbacks.size === 0) {
+    pendingOpenSettingsSections.push(section);
+    return;
+  }
+  for (const callback of openSettingsSectionCallbacks) callback(section);
 });
 
 ipcRenderer.on(PlatformChannels.ShareImport, (_event: unknown, payload: { shareCode: string }) => {
@@ -315,6 +327,9 @@ contextBridge.exposeInMainWorld("nex", {
   /** 同步需要 main 进程即时感知的应用设置 */
   syncAppSettings: (patch: Partial<AppSettings>) =>
     ipcRenderer.send(PlatformChannels.SyncAppSettings, patch),
+  /** 同步桌面宠物悬浮窗状态（null = 销毁/隐藏） */
+  syncPetState: (state: PetWindowState | null) =>
+    ipcRenderer.send(PlatformChannels.SyncPetState, state),
   /** 快捷键设置页录制态开关：main 暂时摘除可配置菜单 accelerator，防止录制按键触发原命令 */
   setShortcutRecordingActive: (active: boolean) =>
     ipcRenderer.send(PlatformChannels.SetShortcutRecordingActive, active),
@@ -478,6 +493,15 @@ contextBridge.exposeInMainWorld("nex", {
       }
     }
     return () => openWorkspacePathCallbacks.delete(callback);
+  },
+  /** 注册 main 要求打开某设置分区的回调（宠物右键「设置」），返回 disposer */
+  onOpenSettingsSection: (callback: (section: string) => void): (() => void) => {
+    openSettingsSectionCallbacks.add(callback);
+    while (pendingOpenSettingsSections.length > 0) {
+      const section = pendingOpenSettingsSections.shift();
+      if (section) callback(section);
+    }
+    return () => openSettingsSectionCallbacks.delete(callback);
   },
   onOpenFeedbackDialog: (callback: () => void): (() => void) => {
     const handler = () => callback();

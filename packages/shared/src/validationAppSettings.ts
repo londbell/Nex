@@ -120,6 +120,19 @@ const appWorkspaceSessionEntrySchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
+const petSettingsSchema = z.object({
+  enabled: z.boolean(),
+  petId: z.string().nullable(),
+  anchor: z.enum(["bottom-right", "bottom-left", "top-right", "top-left"]).optional(),
+  windowPosition: z.object({ x: z.number(), y: z.number() }).optional(),
+  windowDisplayId: z.number().int().optional(),
+  windowSnapZone: z
+    .enum(["top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right"])
+    .optional(),
+  size: z.number().int().min(80).max(224).optional(),
+  visibility: z.enum(["always", "on-demand"]).optional(),
+});
+
 const nexEndpointOriginSchema = z.preprocess((value) => {
   if (typeof value !== "string") {
     return undefined;
@@ -474,6 +487,7 @@ const appSettingsObjectSchema = z.object({
   skippedElectronUpdateVersions: skippedElectronUpdateVersionsSchema,
   settingsSyncFirstRunPromptHandled: z.boolean().optional(),
   nexEndpointOrigin: nexEndpointOriginSchema.optional(),
+  pet: petSettingsSchema.optional(),
 });
 
 export const appSettingsSchema = z.preprocess(
@@ -563,4 +577,5 @@ export const appSettingsPatchSchema = z.object({
     .optional(),
   settingsSyncFirstRunPromptHandled: z.boolean().optional(),
   nexEndpointOrigin: nexEndpointOriginSchema.optional(),
+  pet: petSettingsSchema.optional(),
 });

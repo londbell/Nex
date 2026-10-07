@@ -21,6 +21,7 @@ import {
   installLocalMediaPreviewProtocol,
   registerLocalMediaPreviewScheme,
 } from "./localMediaPreviewProtocol.js";
+import { createPetWindowController, registerPetWindowActionHandler } from "./petWindow.js";
 import { createDesktopBrowserScreenshotSurfaceCoordinator } from "./browserView/browserScreenshotSurfaceCoordinatorWiring.js";
 import { EMBEDDED_BROWSER_PARTITION } from "./browserDataManager.js";
 import { EmbeddedBrowserJavaScriptDialogController } from "./embeddedBrowserJavaScriptDialog.js";
@@ -31,10 +32,13 @@ import {
 import {
   app,
   BrowserWindow,
+  globalShortcut,
   dialog,
   ipcMain,
+  Menu,
   nativeImage,
   protocol,
+  screen,
   session,
   webContents,
 } from "electron";
@@ -53,6 +57,7 @@ import {
 } from "@nex/services/node";
 import {
   desktopMenuMessageIds,
+  getDesktopMenuMessage,
   type Locale,
   type AppSettings,
   PlatformChannels,
@@ -64,6 +69,8 @@ import {
   resolveNexEndpointOrigin,
   type UpdateStatePayload,
   HostMessageTypes,
+  mergePetPlacement,
+  mergePetSettings,
 } from "@nex/shared";
 import { logger } from "./logger.js";
 import { markMainLaunchAppReady } from "./desktopLaunchMarks.js";
@@ -707,6 +714,88 @@ function resolveExternalWorkspaceConfirmationCopy() {
   return resolveExternalWorkspaceOpenDialogCopy(effectiveLocale);
 }
 
+// 桌面宠物悬浮窗（单例）：位置持久化走 main 侧 setting.json，聚焦走 primary coordinator。
+// 回调惰性引用 primaryWindowCoordinator（声明在后），只在用户点击时才解引用，无 TDZ 问题。
+let petWindowController: ReturnType<typeof createPetWindowController> | null = null;
+function getPetWindowController() {
+  if (!petWindowController) {
+    petWindowController = createPetWindowController({
+      BrowserWindow,
+      screen,
+      app,
+      globalShortcut,
+      preloadPath: join(import.meta.dirname, "../preload/petWindow.cjs"),
+      rendererDir: join(import.meta.dirname, "../renderer"),
+      rendererDevUrl: process.env["ELECTRON_RENDERER_URL"],
+      onPlacementPersist: (placement) => {
+        // 与设置页共用 mergePetSettings，避免互相抹掉对方字段。
+        void mainSettingService
+          .get()
+          .then((settings) => {
+            const pet = mergePetPlacement(settings.pet, placement);
+            // 没有宠物设置时不写：落点持久化不能顺手创建/关闭宠物。
+            return pet ? mainSettingService.update({ pet }) : undefined;
+          })
+          .catch((error: unknown) => {
+            logger.warn(
+              `[pets] 悬浮窗位置持久化失败: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          });
+      },
+    });
+  }
+  return petWindowController;
+}
+
+/** 宠物右键菜单：隐藏（关闭宠物开关）/ 设置（打开主窗口的宠物设置）。 */
+function showPetContextMenu() {
+  logger.info("[pets] 弹出右键菜单");
+  const label = (id: (typeof desktopMenuMessageIds)[keyof typeof desktopMenuMessageIds]) =>
+    getDesktopMenuMessage(currentApplicationLocale, id);
+  const menu = Menu.buildFromTemplate([
+    {
+      label: label(desktopMenuMessageIds.petHide),
+      click: () => {
+        // 与设置页开关同一份 setting.json；落盘后广播让主窗口 renderer 刷新，
+        // 否则 renderer 里旧的 enabled=true 会在下一次状态推送时把宠物重新建出来。
+        void mainSettingService
+          .get()
+          .then((settings) =>
+            mainSettingService.update({
+              pet: mergePetSettings(settings.pet, { enabled: false }),
+            }),
+          )
+          .then(() => {
+            petWindowController?.destroy();
+            for (const win of getApplicationWindowsExcludingCuaIndicator()) {
+              if (!win.isDestroyed()) win.webContents.send(PlatformChannels.SettingsChanged);
+            }
+          })
+          .catch((error: unknown) => {
+            logger.warn(
+              `[pets] 隐藏宠物失败: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          });
+      },
+    },
+    {
+      label: label(desktopMenuMessageIds.petSettings),
+      click: () => {
+        void primaryWindowCoordinator.ensurePrimaryWindow("pet-window-settings").then(() => {
+          for (const win of getMainApplicationWindows()) {
+            if (!win.isDestroyed()) {
+              win.webContents.send(PlatformChannels.OpenSettingsSection, "pets");
+            }
+          }
+        });
+      },
+    },
+  ]);
+  const controller = petWindowController;
+  if (controller) controller.popupMenu(menu);
+  else menu.popup();
+}
+
 const primaryWindowCoordinator = createPrimaryWindowCoordinator({
   listWindows: getApplicationWindowsExcludingCuaIndicator,
   resolveStartupWindowBootstrap: () => {
@@ -833,6 +922,9 @@ async function prepareAppQuit(reason: string, kind: AppShutdownKind = "normal"):
   markForceQuit(reason);
   windowsCuaOperationIndicator.dispose();
   browserScreenshotSurfaceCoordinator.dispose();
+  // 宠物悬浮窗随应用退出销毁（窗口关闭不退出时它仍留在桌面上，但真退出要收干净）。
+  petWindowController?.destroy();
+  petWindowController = null;
 
   const cronSchedulerToDispose = cronScheduler;
   cronScheduler = null;
@@ -1244,7 +1336,11 @@ function resolveFocusedDesktopZoomLevel(): number {
 
 function getApplicationWindowsExcludingCuaIndicator(): BrowserWindow[] {
   return BrowserWindow.getAllWindows().filter(
-    (win) => !win.isDestroyed() && !windowsCuaOperationIndicator.ownsWindow(win),
+    (win) =>
+      !win.isDestroyed() &&
+      !windowsCuaOperationIndicator.ownsWindow(win) &&
+      // 宠物悬浮窗不算应用窗口：主窗口全关后它留在桌面上，不阻塞 window-all-closed / 退出清理。
+      !(petWindowController?.ownsWindow(win) ?? false),
   );
 }
 
@@ -1919,6 +2015,7 @@ app.whenReady().then(async () => {
       runningAgentSessionCount: getRunningAgentSessionCount(),
     }),
     syncAppSettings: syncImmediateAppSettings,
+    syncPetState: (state) => getPetWindowController().syncState(state),
     setShortcutRecordingActive,
     deviceMid,
   });
@@ -1935,6 +2032,16 @@ app.whenReady().then(async () => {
     listAvailableWSLDistros,
     listAvailableDockerContainers,
     listSSHConfigAliases,
+  });
+
+  // 宠物悬浮窗动作通道（点击聚焦主窗口）。
+  registerPetWindowActionHandler({
+    ipcMain,
+    focusPrimaryWindow: () => {
+      void primaryWindowCoordinator.ensurePrimaryWindow("pet-window-click");
+    },
+    showContextMenu: showPetContextMenu,
+    getPetWindowController: () => petWindowController,
   });
 
   // 本地未打包 dev 构建（app.isPackaged === false）必须跳过远端强制升级 gate。

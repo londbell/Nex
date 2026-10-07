@@ -60,6 +60,7 @@ export function createDesktopPlatform(options: {
     syncWindowUnreadCount: (count) => window.nex.syncWindowUnreadCount(count),
     syncActiveTaskSession: (sessionId) => window.nex.syncActiveTaskSession(sessionId),
     syncAppSettings: (patch) => window.nex.syncAppSettings?.(patch),
+    syncPetState: (state) => window.nex.syncPetState?.(state),
     setShortcutRecordingActive: (active) => window.nex.setShortcutRecordingActive?.(active),
     onFocusTab: (handler) => window.nex.onFocusTab(handler),
     onNewTab: (handler) => window.nex.onNewTab(handler),
@@ -80,6 +81,7 @@ export function createDesktopPlatform(options: {
       // 缺少该 bridge 时只禁用原生菜单回调，不影响应用继续打开。
       return window.nex.onOpenWorkspace?.(handler) ?? (() => {});
     },
+    onOpenSettingsSection: (handler) => window.nex.onOpenSettingsSection?.(handler) ?? (() => {}),
     onOpenWorkspacePath: (handler) => window.nex.onOpenWorkspacePath?.(handler) ?? (() => {}),
     onOpenFeedbackDialog: (handler) => window.nex.onOpenFeedbackDialog?.(handler) ?? (() => {}),
     onOpenTicketsPanel: (handler) => window.nex.onOpenTicketsPanel?.(handler) ?? (() => {}),
