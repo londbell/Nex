@@ -83,3 +83,5 @@ output/
 
 # Docker 构建上下文（scripts/stage-docker-context.sh 生成）
 dist-docker/
+
+log/
