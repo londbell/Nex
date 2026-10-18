@@ -42,6 +42,57 @@ function NexMark() {
   );
 }
 
+function AboutBrandIcon() {
+  return (
+    <div
+      aria-hidden="true"
+      className="flex h-13 w-13 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-b from-black to-[#151718] text-white shadow-[0_10px_13px_-3px_rgb(0_0_0/0.2),0_4px_5px_-3px_rgb(0_0_0/0.2)]"
+    >
+      <NexMark />
+    </div>
+  );
+}
+
+/** 设置页平铺展示同一构建信息，Commit 直接可见，不引入弹窗或详情开关。 */
+export function AboutSection({ isDesktop }: { isDesktop: boolean }) {
+  const { intl } = useNexIntl();
+  const appleSiliconLine = shouldShowAppleSiliconLine(isDesktop);
+
+  return (
+    <div data-testid="settings-about-section" className="space-y-6">
+      <div className="flex items-center gap-4">
+        <AboutBrandIcon />
+        <h3 className="min-w-0 text-ui-xl font-semibold text-foreground">
+          {isDesktop ? "Nex Desktop App" : "Nex Web App"}
+        </h3>
+      </div>
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-y-4">
+        <dt className="text-ui-base text-foreground-subtle">
+          {intl.formatMessage({ id: "workspaceHeader.about.versionLabel" })}
+        </dt>
+        <dd className="min-w-0 select-text break-all font-mono text-ui-base text-foreground">
+          {NEX_VERSION}
+        </dd>
+        <dt className="text-ui-base text-foreground-subtle">Commit</dt>
+        <dd className="min-w-0 select-text break-all font-mono text-ui-base text-foreground">
+          {NEX_COMMIT}
+        </dd>
+      </dl>
+      <div className="space-y-2 text-ui-caption text-foreground-subtle">
+        {appleSiliconLine ? (
+          <p>{intl.formatMessage({ id: "workspaceHeader.about.appleSilicon" })}</p>
+        ) : null}
+        <p>
+          {intl.formatMessage(
+            { id: "workspaceHeader.about.copyright" },
+            { year: new Date().getFullYear() },
+          )}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /**
  * 关于对话框（跨端）。
  *
@@ -84,12 +135,7 @@ export function AboutDialog({
           {/* 对应 .content：max-w 222 居中，flex-1 */}
           <div className="mx-auto w-full max-w-[222px]">
             {/* 对应 .app-icon：52px 深色渐变块 + 白标 */}
-            <div
-              aria-hidden="true"
-              className="flex h-13 w-13 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-b from-black to-[#151718] text-white shadow-[0_10px_13px_-3px_rgb(0_0_0/0.2),0_4px_5px_-3px_rgb(0_0_0/0.2)]"
-            >
-              <NexMark />
-            </div>
+            <AboutBrandIcon />
             {/* 对应 .title：margin-top 20，13.5px/1.18 bold，两行（应用名 + version） */}
             <DialogTitle className="mt-5 text-[13.5px] font-bold leading-[1.18]">
               {isDesktop ? "Nex Desktop App" : "Nex Web App"}
