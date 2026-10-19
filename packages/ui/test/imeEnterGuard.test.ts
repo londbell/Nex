@@ -178,7 +178,10 @@ test("原生监听：鼠标松开和失焦清理守卫；解绑后没有残留�
   dispatch("compositionend");
   dispose();
   assert.deepEqual(state, createImeEnterGuardState());
+  // Node EventTarget 的布尔 capture 解绑曾失效；解绑后组合事件不能重新激活守卫。
   dispatch("compositionstart");
+  assert.deepEqual(state, createImeEnterGuardState());
+  dispatch("compositionend");
   assert.deepEqual(state, createImeEnterGuardState());
 });
 
