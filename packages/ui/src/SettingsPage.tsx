@@ -65,6 +65,7 @@ import { WindowsTopLeftLogo } from "@/WindowsTopLeftLogo.js";
 
 import { DesktopWindowControls } from "@/DesktopWindowControls.js";
 import { WorkspaceSidebarFooter } from "@/WorkspaceSidebarFooter.js";
+import { AboutSection } from "@/WorkspaceAboutDialog.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { cn } from "@/components/lib/utils.js";
 import { useSelectDirectory } from "@/hooks/usePlatform.js";
@@ -1075,6 +1076,8 @@ export function SettingsPage({
                           />
                         ) : activeSection === "usage" ? (
                           <UsageStatsSection />
+                        ) : activeSection === "about" ? (
+                          <AboutSection isDesktop={Boolean(isDesktop)} />
                         ) : activeSection === "subagents" ? (
                           <SubagentsSection
                             onManageModels={handleOpenModelProviderSettings}

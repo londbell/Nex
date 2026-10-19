@@ -21,6 +21,12 @@ import {
   shouldBareEnterFallThroughToNewline,
 } from "@/shortcuts/composerShortcuts.js";
 import { useEffectiveShortcutBindings } from "@/shortcuts/useShortcutBindings.js";
+import {
+  bindImeEnterGuard,
+  createImeEnterGuardState,
+  handleImeConfirmEnter,
+  isImeComposingKeyEvent,
+} from "@/lib/imeComposition.js";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { PlainTextPlugin } from "@lexical/react/LexicalPlainTextPlugin";
@@ -40,6 +46,7 @@ import {
   KEY_ARROW_DOWN_COMMAND,
   KEY_ARROW_UP_COMMAND,
   KEY_BACKSPACE_COMMAND,
+  COMMAND_PRIORITY_CRITICAL,
   COMMAND_PRIORITY_HIGH,
   KEY_ENTER_COMMAND,
   type EditorState,
@@ -502,8 +509,8 @@ function selectAfterPromptMentionById(mentionId: string): boolean {
 /**
  * 键盘行为插件：Enter 发送，Shift+Enter 换行
  *
- * 用 COMMAND_PRIORITY_HIGH 截获 Enter 按键，
- * 阻止 Lexical 默认的段落插入行为。
+ * IME 确认以 COMMAND_PRIORITY_CRITICAL 优先消费；
+ * 正常发送沿用 COMMAND_PRIORITY_HIGH，阻止 Lexical 默认段落插入行为。
  */
 function KeyboardPlugin({
   onSubmit,
@@ -521,6 +528,31 @@ function KeyboardPlugin({
   enterSubmits: boolean;
 }) {
   const [editor] = useLexicalComposerContext();
+  const imeEnterGuardRef = useRef(createImeEnterGuardState());
+
+  useEffect(() => {
+    // Safari 的 compositionend 先于确认 Enter，isComposing 此时可能已为 false。
+    // 消费 Lexical 命令但保留组词中的原生上屏，不能落入发送/联想/换行。
+    // 注册须与编辑器同生命周期，否则业务 props 变化重注册会排到联想处理器之后。
+    const unregisterImeEnter = editor.registerCommand(
+      KEY_ENTER_COMMAND,
+      (event) => event !== null && handleImeConfirmEnter(imeEnterGuardRef.current, event),
+      COMMAND_PRIORITY_CRITICAL,
+    );
+    let detachGuard: (() => void) | undefined;
+    const unregisterRoot = editor.registerRootListener((rootElement) => {
+      detachGuard?.();
+      detachGuard = rootElement
+        ? bindImeEnterGuard(rootElement, imeEnterGuardRef.current)
+        : undefined;
+    });
+    return () => {
+      unregisterImeEnter();
+      unregisterRoot();
+      detachGuard?.();
+    };
+  }, [editor]);
+
   // 作用域改绑层：读生效表的 composer 命令切片；ref 透传避免按键监听重挂。
   const effectiveShortcutBindings = useEffectiveShortcutBindings();
   const composerEffectiveRef = useRef({
@@ -541,11 +573,6 @@ function KeyboardPlugin({
         if (disabled) {
           event.preventDefault();
           return true;
-        }
-
-        // IME 正在组合中（如中文输入法），不拦截
-        if (event.isComposing) {
-          return false;
         }
 
         const text = getEditorMarkdown(editor.getEditorState());
@@ -730,7 +757,16 @@ function KeyboardPlugin({
     // 非 Enter 物理键不存在手机软键盘误发问题，send 不受 enterSubmits 视口门禁；
     // 与反转投递（仅响应 Ctrl/Meta+Enter）无交集，无需让位。
     const handleNonEnterScopedKeydown = (event: KeyboardEvent) => {
-      if (disabled || event.repeat || event.isComposing || event.key === "Enter") {
+      if (
+        disabled ||
+        event.repeat ||
+        event.key === "Enter" ||
+        isImeComposingKeyEvent({
+          compositionActive: imeEnterGuardRef.current.compositionActive,
+          isComposing: event.isComposing,
+          keyCode: event.keyCode,
+        })
+      ) {
         return;
       }
       const scopedAction = resolveComposerKeyAction(event, composerEffectiveRef.current);

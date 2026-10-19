@@ -49,6 +49,84 @@ test("both About marks use inherited white and fit the existing small icon shell
   assert.match(desktop, /\.app-logo\s*\{\s*width: 30px;\s*height: auto;/);
 });
 
+test("settings About is a regular section under the final Help group", async () => {
+  const [config, navigation, page] = await Promise.all([
+    read("packages/ui/src/settings/settingsPageConfig.ts"),
+    read("packages/ui/src/lib/settingsNavigation.ts"),
+    read("packages/ui/src/SettingsPage.tsx"),
+  ]);
+  assert.match(
+    config,
+    /id: "dataAndStats"[^\n]*\n\s*\{ id: "help", titleId: "settings\.sidebar\.group\.help" \}/,
+  );
+  assert.match(
+    config,
+    /id: "about",\s*icon: Info,\s*titleId: "settings\.aboutTitle",\s*groupId: "help"/,
+  );
+  assert.match(navigation, /\| "about"/);
+  assert.match(navigation, /value === "about"/);
+  assert.match(page, /import \{ AboutSection \} from "@\/WorkspaceAboutDialog\.js"/);
+  assert.match(
+    page,
+    /activeSection === "about" \? \(\s*<AboutSection isDesktop=\{Boolean\(isDesktop\)\} \/>/,
+  );
+  assert.match(page, /data-testid=\{testId\(TID_SETTINGS_SECTION_NAV, id\)\}/);
+  assert.match(page, /setActiveSettingsSection\(id\)/);
+  assert.match(page, /writeLastSettingsSectionPreference\(resolvedSection\)/);
+  assert.doesNotMatch(
+    page,
+    /aboutOpen|\bAboutDialog\b|settings-about-button|DesktopCommandIds\.ShowAbout/,
+  );
+});
+
+test("inline About shows all existing information and Commit without modal interactions", async () => {
+  const source = await read(surfaces[3]!);
+  const section = source.match(/export function AboutSection\b[\s\S]*?(?=\/\*\*)/)?.[0];
+  assert.ok(section);
+  assert.match(section, /data-testid="settings-about-section"/);
+  assert.match(section, /<AboutBrandIcon \/>/);
+  assert.match(section, /"Nex Desktop App" : "Nex Web App"/);
+  assert.match(section, /workspaceHeader\.about\.versionLabel/);
+  assert.match(section, /\{NEX_VERSION\}/);
+  assert.match(section, /<dt[^>]*>Commit<\/dt>/);
+  assert.match(
+    section,
+    /className="min-w-0 select-text break-all font-mono text-ui-base text-foreground"/,
+  );
+  assert.match(section, /\{NEX_COMMIT\}/);
+  assert.match(section, /shouldShowAppleSiliconLine\(isDesktop\)/);
+  assert.match(section, /workspaceHeader\.about\.appleSilicon/);
+  assert.match(section, /workspaceHeader\.about\.copyright/);
+  assert.doesNotMatch(section, /showDetails|<Button|<Dialog|useState|onOpenChange/);
+  assert.doesNotMatch(section, /text-\[|text-(?:xs|sm|base|lg|xl)\b/);
+  assert.equal((source.match(/<AboutBrandIcon \/>/g) ?? []).length, 2);
+});
+
+test("shared About still displays the build version and retains its existing layout", async () => {
+  const source = await read(surfaces[3]!);
+  assert.match(source, /NEX_COMMIT, NEX_VERSION, TID_WORKSPACE_ABOUT_DIALOG/);
+  assert.match(source, /"Nex Desktop App" : "Nex Web App"/);
+  assert.match(source, /workspaceHeader\.about\.versionLabel[^\n]*\{NEX_VERSION\}/);
+  assert.match(source, /className="w-64 max-w-\[calc\(100%-2rem\)\] gap-0 p-0"/);
+  assert.match(source, /className="mt-5 text-\[13\.5px\] font-bold leading-\[1\.18\]"/);
+  assert.match(
+    source,
+    /className="mt-7 flex flex-col gap-\[17px\] text-\[13px\] leading-\[1\.2\] text-foreground-subtle"/,
+  );
+  assert.match(source, /showDetails \? <div className="break-all">Commit: \{NEX_COMMIT\}/);
+});
+
+test("settings Help group and About section have Chinese and English labels", async () => {
+  const [zh, en] = await Promise.all([
+    read("packages/ui/src/i18n/locales/zh-CN.ts"),
+    read("packages/ui/src/i18n/locales/en-US.ts"),
+  ]);
+  assert.match(zh, /"settings\.aboutTitle": "关于"/);
+  assert.match(en, /"settings\.aboutTitle": "About"/);
+  assert.match(zh, /"settings\.sidebar\.group\.help": "帮助"/);
+  assert.match(en, /"settings\.sidebar\.group\.help": "Help"/);
+});
+
 test("application icon source uses the same N in neutral black and white", async () => {
   const [source, startup] = await Promise.all([read("public/logo/icon.svg"), read(surfaces[5]!)]);
   assert.match(source, /viewBox="0 0 1024 1024"/);

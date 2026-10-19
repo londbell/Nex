@@ -19,6 +19,7 @@ import {
   Keyboard,
   FileSearch,
   PawPrint,
+  Info,
 } from "lucide-react";
 import { isSettingsSectionEnabled, type SettingsSectionId } from "@/lib/settingsNavigation.js";
 import type { Theme } from "@/useTheme.js";
@@ -32,7 +33,7 @@ export const THEME_MODES: Array<{
   { mode: "zai-light", icon: Sun },
 ];
 
-type SettingsSectionGroupId = "basics" | "agentCapabilities" | "dataAndStats";
+type SettingsSectionGroupId = "basics" | "agentCapabilities" | "dataAndStats" | "help";
 
 interface SettingsSectionDefinition {
   id: SettingsSectionId;
@@ -53,6 +54,7 @@ const BASE_SETTINGS_SECTION_GROUPS: Array<{
     titleId: "settings.sidebar.group.agentCapabilities",
   },
   { id: "dataAndStats", titleId: "settings.sidebar.group.dataAndStats" },
+  { id: "help", titleId: "settings.sidebar.group.help" },
 ];
 
 const BASE_SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
@@ -162,6 +164,12 @@ const BASE_SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
     icon: BarChart3,
     titleId: "settings.usageTitle",
     groupId: "dataAndStats",
+  },
+  {
+    id: "about",
+    icon: Info,
+    titleId: "settings.aboutTitle",
+    groupId: "help",
   },
 ];
 

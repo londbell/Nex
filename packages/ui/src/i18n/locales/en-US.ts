@@ -1967,9 +1967,11 @@ const enUS: Record<string, string> = {
   "settings.subtitle":
     "Switch major settings on the left and edit the details in the panel on the right.",
   "settings.navLabel": "Sections",
+  "settings.aboutTitle": "About",
   "settings.sidebar.group.basics": "Basics",
   "settings.sidebar.group.agentCapabilities": "Agent capabilities",
   "settings.sidebar.group.dataAndStats": "Data and statistics",
+  "settings.sidebar.group.help": "Help",
   "settings.nav.generalDescription": "Language and current window experience",
   "settings.nav.appearanceDescription": "Theme, UI font size, and code presentation",
   "settings.themeCardTitle": "Theme",

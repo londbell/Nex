@@ -20,7 +20,8 @@ export type SettingsSectionId =
   | "computerUse"
   | "automations"
   | "shortcuts"
-  | "pets";
+  | "pets"
+  | "about";
 
 type SettingsPluginTabTarget = "plugins" | "mcps" | "skills" | "commands";
 type SettingsPluginNavigationOrigin = "plugin-store";
@@ -70,7 +71,8 @@ function isSettingsSectionId(value: string): value is SettingsSectionId {
     value === "computerUse" ||
     value === "automations" ||
     value === "shortcuts" ||
-    value === "pets"
+    value === "pets" ||
+    value === "about"
   );
 }
 

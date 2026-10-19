@@ -10,7 +10,13 @@ import {
   type Theme,
 } from "@nex/ui";
 import "@nex/ui/styles.css";
-import { connectViaWebSocket } from "@nex/client";
+import { createWebSocketServiceConnection } from "@nex/client";
+import {
+  createWebConnectionRecovery,
+  type WebConnectionState,
+  type WebServiceConnection,
+} from "./webConnectionRecovery.js";
+import { WebConnectionStatus } from "./WebConnectionStatus.js";
 import { resolveWebCommunityUrl, resolveWebHelpConfig } from "./communityUrl.js";
 import {
   ConversationShareLandingLoader,
@@ -152,7 +158,9 @@ async function renderConversationSharePage(): Promise<void> {
   );
 }
 
-function createWebPlatform(mcpSyncService: WebMcpSyncService): IPlatformService {
+function createWebPlatform(
+  mcpSyncService: Pick<WebMcpSyncService, "loadMcpFromUserDirectory" | "saveMcpToUserDirectory">,
+): IPlatformService {
   const taskNotifier = createWebTaskNotifier({
     getNotificationApi: () =>
       typeof window.Notification === "undefined"
@@ -432,47 +440,82 @@ async function bootstrapWebApp() {
   }
 
   try {
-    let socketOpened = false;
-    const services = await connectViaWebSocket(bootstrap.wsUrl, {
-      onOpenSocket: () => {
-        socketOpened = true;
+    let services: WebServiceConnection["services"] | null = null;
+    let platform: IPlatformService | null = null;
+    let connectionState: WebConnectionState = "connecting";
+    function renderConnectedApp() {
+      if (!services || !platform) return;
+      // 原因：只换服务、不卸载 Root，保留 tab/草稿；现有 registry 按新 service 身份重订阅。
+      root.render(
+        <AppErrorBoundary>
+          <NexIntlProvider
+            settingService={services.settingService}
+            broadcastService={services.broadcastService}
+          >
+            <div className="h-full" inert={connectionState !== "connected"}>
+              <Root
+                services={services}
+                platform={platform}
+                initialWorkspaceAbsPath={bootstrap.initialWorkspaceAbsPath}
+                initialWorkspaceIdentity={bootstrap.initialWorkspaceIdentity}
+                initialTaskId={bootstrap.initialTaskId}
+                restoreSession={bootstrap.restoreSession}
+                allowOpenWorkspace={bootstrap.allowOpenWorkspace}
+                preferDirectoryBrowser
+                supportsEmbeddedBrowser={false}
+                allowRemoteWorkspace={false}
+              />
+            </div>
+            <WebConnectionStatus state={connectionState} onRetry={() => recovery.retry()} />
+          </NexIntlProvider>
+        </AppErrorBoundary>,
+      );
+    }
+    const recovery = createWebConnectionRecovery({
+      connect: (onClose) => createWebSocketServiceConnection(bootstrap.wsUrl, { onClose }),
+      shouldReconnect: async () => {
+        const session = await resolveWebAuthAfterDisconnect();
+        const gate = decideWebAuthGate(session, window.location);
+        if (gate.kind === "redirect") {
+          window.location.replace(gate.to);
+          return false;
+        }
+        return true;
       },
-      // 会话在应用运行中失效（过期、服务端 token 轮换）时回登录页。
-      // 只有服务端明确报告未登录才跳转，普通断线沿用原有处理，不把网络抖动当成登出；
-      // 启动阶段连接失败（socket 从未打开）由下面的 catch 处理。
-      onClose: () => {
-        if (!socketOpened) return;
-        socketOpened = false;
-        void resolveWebAuthAfterDisconnect().then((session) => {
-          const gate = decideWebAuthGate(session, window.location);
-          if (gate.kind === "redirect") window.location.replace(gate.to);
-        });
+      onServices: (next) => {
+        services = next;
+        platform ??= createWebPlatform(recovery.mcpService);
+        renderConnectedApp();
+      },
+      onStateChange: (state) => {
+        connectionState = state;
+        renderConnectedApp();
       },
     });
-    const platform = createWebPlatform(services.mcpSyncService);
+    const retry = () => recovery.retry();
+    window.addEventListener("online", retry);
+    const visibleRetry = () => {
+      if (document.visibilityState === "visible") retry();
+    };
+    document.addEventListener("visibilitychange", visibleRetry);
+    const dispose = () => {
+      recovery.dispose();
+      window.removeEventListener("online", retry);
+      document.removeEventListener("visibilitychange", visibleRetry);
+      window.removeEventListener("pagehide", pageHide);
+    };
+    // pagehide 的 bfcache 恢复仍需要连接 owner，不在浏览器暂存页面时永久 dispose。
+    const pageHide = (event: PageTransitionEvent) => {
+      if (!event.persisted) dispose();
+    };
+    window.addEventListener("pagehide", pageHide);
+    try {
+      await recovery.start();
+    } catch (error) {
+      dispose();
+      throw error;
+    }
     document.title = "Nex - Web + Server";
-
-    root.render(
-      <AppErrorBoundary>
-        <NexIntlProvider
-          settingService={services.settingService}
-          broadcastService={services.broadcastService}
-        >
-          <Root
-            services={services}
-            platform={platform}
-            initialWorkspaceAbsPath={bootstrap.initialWorkspaceAbsPath}
-            initialWorkspaceIdentity={bootstrap.initialWorkspaceIdentity}
-            initialTaskId={bootstrap.initialTaskId}
-            restoreSession={bootstrap.restoreSession}
-            allowOpenWorkspace={bootstrap.allowOpenWorkspace}
-            preferDirectoryBrowser
-            supportsEmbeddedBrowser={false}
-            allowRemoteWorkspace={false}
-          />
-        </NexIntlProvider>
-      </AppErrorBoundary>,
-    );
   } catch (error) {
     // 连接在握手前被拒（401）时同样回到登录页，而不是停在通用启动失败页。
     if (await redirectToLoginIfUnauthenticated()) {
